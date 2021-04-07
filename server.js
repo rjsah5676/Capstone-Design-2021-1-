@@ -21,6 +21,12 @@ app.get('/', (req, res) => {
   res.render('home');
 })
 
+app.get('/:room/:userid', async(req, res)=> {
+  console.log(req.params.userid)
+  const user = await User.findOne({userId: req.params.userid}, null, {})
+  res.json({user_name: user.userName})
+})
+
 app.get('/newroom', (req, res) => {
   res.redirect(`/${uuidV4()}`)
 })
@@ -51,7 +57,10 @@ io.on('connection', socket => {
 
     socket.join(roomId)
     socket.to(roomId).broadcast.emit('user-connected', userId, userName)
-
+    socket.on('getName', async (userId) =>{ // 건들고잇는부분
+      users = await User.find({userId:userId}, null, {})
+      socket.emit('goName', users)
+    })
     socket.on('disconnect', () => {
       User.remove({userId : userId}).then((result)=>{
         console.log("delete user id : "+userId+"user name : "+userName);

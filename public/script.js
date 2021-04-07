@@ -25,19 +25,20 @@ navigator.mediaDevices.getUserMedia({
   user_box.appendChild(myVideo)
   addVideoStream(myVideo, stream, user_box, stream.id)
 
-  myPeer.on('call', call => {
+  myPeer.on('call', async(call) => {
     call.answer(stream)
+    const userName = await getUserName(call.provider._id)
     const video = document.createElement('video')
     const user_box = document.createElement('user_box')
     const video_user_name = document.createElement('video_user_name') //비디오에 이름 표시 코드
     const bold = document.createElement('b')
-    const video_user_name_text = document.createTextNode("abc")
+    const video_user_name_text = document.createTextNode(userName)
     call.on('stream', userVideoStream => {
       video_user_name.appendChild(bold)
       bold.appendChild(video_user_name_text)
       user_box.appendChild(video_user_name)
       user_box.appendChild(video)
-      addVideoStream(video, userVideoStream, user_box, socket)  //원래 있던 유저들 보여주기
+      addVideoStream(video, userVideoStream, user_box, call.provider._id + '!!')  //원래 있던 유저들 보여주기
     })
   })
 
@@ -106,3 +107,20 @@ sendButton.addEventListener('click', function(){
   var message = chatInput.value; 
   if(!message) return false; 
   socket.emit('sendMessage', { message, ROOM_ID }); chatInput.value = ''; });
+
+async function getUserName(userid){
+  var result = 'x'
+  console.log("getname")
+  await fetch('/' + ROOM_ID +'/' + userid)
+    .then(async(res) => 
+      {result = await res.json()})
+    .catch(error => console.error('Error:', error))
+    /*
+  await socket.emit('getName', userId)
+  await socket.on('goName', userName => {
+    console.log(userName)
+    result = 'abc'
+  })*/
+  console.log(result.user_name +'!!')
+  return result.user_name
+}
