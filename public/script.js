@@ -31,7 +31,7 @@ navigator.mediaDevices.getUserMedia({
     call.answer(stream)
     const video_user_name = document.createElement('video_user_name') //비디오에 이름 표시 코드
     const bold = document.createElement('b')
-    const video_user_name_text = document.createTextNode('none')
+    const video_user_name_text = document.createTextNode('loading..')
     const video = document.createElement('video')
     const user_box = document.createElement('user_box')
     call.on('stream', userVideoStream => {
@@ -56,7 +56,7 @@ socket.on('user-disconnected', userId => {
 
 socket.on('setName', (streamId, userName) => {
   const bold = document.getElementById(streamId)
-  bold.innerHTML(userName)
+  bold.innerHTML = userName
 })
 
 myPeer.on('open', id => {
