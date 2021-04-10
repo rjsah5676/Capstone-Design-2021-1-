@@ -27,6 +27,15 @@ app.get('/:room/:userid', async(req, res)=> {
   res.json({user_name: user.userName})
 })
 
+app.post('/setStreamId/:streamId/:userId', async(req, res)=> {
+  console.log(req.params)
+  const user = await User.findOne({userId: req.params.userId}, null, {})
+  await user.updateOne({streamId: req.params.streamId})
+  console.log(user)
+  res.json({message: "success!"})
+})
+
+
 app.get('/newroom', (req, res) => {
   res.redirect(`/${uuidV4()}`)
 })
@@ -37,13 +46,18 @@ app.get('/:room', (req, res) => {
 
 io.on('connection', socket => {
   socket.on('sendMessage', function(data){ data.name = socket.userName; io.sockets.emit('updateMessage', data); });
-
-  socket.on('join-room', (roomId, userId, userName) => {
+  socket.on('getName', async (streamId) =>{ // 건들고잇는부분
+    users = await User.findOne({streamId:streamId}, null, {})
+    socket.emit('setName', streamId, users.userName)
+  })
+  socket.on('join-room', (roomId, userId, userName, streamId) => {
     socket.userName=userName
+    socket.userId = userId
     const user = new User({
       userName:userName,
       userId : userId,
-      roomid:roomId
+      roomid:roomId,
+      streamId: streamId
     });
     user.save((err, user)=>{
       if(err){
@@ -51,16 +65,13 @@ io.on('connection', socket => {
       }
       console.log(user);
     });
-
+    socket.emit('userIdSet', userId)
     var msg= userName + '님이 접속하셨습니다.'
     socket.to(roomId).emit('updateMessage', { name : 'SERVER', message : msg, roomId: roomId });
 
     socket.join(roomId)
     socket.to(roomId).broadcast.emit('user-connected', userId, userName)
-    socket.on('getName', async (userId) =>{ // 건들고잇는부분
-      users = await User.find({userId:userId}, null, {})
-      socket.emit('goName', users)
-    })
+
     socket.on('disconnect', () => {
       User.remove({userId : userId}).then((result)=>{
         console.log("delete user id : "+userId+"user name : "+userName);

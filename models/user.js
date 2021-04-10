@@ -13,6 +13,10 @@ const userSchema = new Schema({
     roomid: {
         type: String,
         required: true,
+    },
+    streamId: {
+        type: String,
+        required: false,
     }
 });
 
