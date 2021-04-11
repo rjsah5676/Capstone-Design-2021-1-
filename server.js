@@ -73,7 +73,11 @@ io.on('connection', socket => {
       socket.to(roomId).broadcast.emit('user-disconnected', userId)
     })
   })
-
+  socket.on('reDrawing', () => {
+    for(var i in line_track) {
+      socket.emit('drawLine', {line: line_track[i].line, roomId:line_track[i].roomId});
+    }
+  })
   //---캔버스 코드---
   for(var i in line_track) {
     socket.emit('drawLine', {line: line_track[i].line, roomId:line_track[i].roomId});
