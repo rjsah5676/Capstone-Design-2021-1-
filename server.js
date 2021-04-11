@@ -34,7 +34,10 @@ app.get('/:room', (req, res) => {
 })
 
 io.on('connection', socket => {
-  socket.on('sendMessage', function(data){ data.name = socket.userName; io.sockets.emit('updateMessage', data); });
+  socket.on('sendMessage', function(data){ 
+    data.name = socket.userName;
+    io.sockets.emit('updateMessage', data); 
+  });
 
   socket.on('getName', async (userId) =>{ //유저 이름 달아줌
     users = await User.findOne({userId:userId}, null, {})
@@ -57,7 +60,7 @@ io.on('connection', socket => {
       console.log(user);
     });
     socket.emit('userIdSet', userId)
-    var msg= userName + '님이 접속하셨습니다.'
+    var msg= userName + '님이 접속하셨습니다.'  //이거 뜨는 위치 바꺼야댐
     socket.to(roomId).emit('updateMessage', { name : 'SERVER', message : msg, roomId: roomId });
 
     socket.join(roomId)
@@ -73,12 +76,13 @@ io.on('connection', socket => {
       socket.to(roomId).broadcast.emit('user-disconnected', userId)
     })
   })
+  //---캔버스 코드---
   socket.on('reDrawing', () => {
     for(var i in line_track) {
       socket.emit('drawLine', {line: line_track[i].line, roomId:line_track[i].roomId});
     }
   })
-  //---캔버스 코드---
+
   for(var i in line_track) {
     socket.emit('drawLine', {line: line_track[i].line, roomId:line_track[i].roomId});
   } //트랙보고 새로 들어온 사람이 원래 그렸던 그림 볼 수 있도록
