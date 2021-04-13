@@ -174,8 +174,8 @@ var canvas = document.getElementById(ROOM_ID)
 var isDisplaying = false;
 
 function displayPlay() {
-  var context = canvas.getContext('2d'),
-  displayBox = document.getElementById('displayBox')
+  var context = canvas.getContext('2d')
+  var displayBox = document.getElementById('displayBox')
   var video = document.createElement('video')
   video.id = 'userDisplay'
   displayBox.append(video)
@@ -196,27 +196,23 @@ function displayPlay() {
 }
 
 var drawPause = false;
+var prev_image
 
 async function draw( video, context, width, height ) {
   width = parseInt(window.innerWidth*0.782)
   height = parseInt(window.innerHeight*0.793)
-  var image
-  if((canvas.width != width || canvas.height != height) && drawPause) {
-    canvas.width = width
-    canvas.height = height
-    await context.drawImage( video, 0, 0, width, height );
-    socket.emit('reDrawing')
-  }
+
   if(!drawPause) {
     context.drawImage( video, 0, 0, width, height );
-    image = canvas.toDataURL()
+    prev_image = canvas.toDataURL()
     var img = new Image();
     img.addEventListener('load', ()=> {
       context.drawImage(img, 0,0)
     })
-    img.src = image
-    if(image != undefined && image != null)
-      socket.emit('imageSend', ROOM_ID, user_id, canvas.toDataURL())
+    img.src = prev_image
+    
+    if(prev_image != undefined && prev_image != null)
+      socket.emit('imageSend', ROOM_ID, user_id, prev_image)
   }
   setTimeout(draw, 25, video, context, width, height)
 }
@@ -225,6 +221,7 @@ socket.on('drawImage', (roomId,userId,image)=>{
   if(userId != user_id && roomId == ROOM_ID) {
     var canvas = document.getElementById(ROOM_ID),
     context = canvas.getContext('2d')
+    prev_image = image
     otherDraw(context, image)
   }
 })
@@ -250,11 +247,16 @@ document.addEventListener("keydown", (e) => {
     socket.emit('pauseServer', user_id, isPause)
     isPause=!isPause
   }
-  if(e.key == 'Escape')  //지우개
+  if(e.key == 'Escape')  {//지우개
     socket.emit('clearWhiteBoard', ROOM_ID)
+    if(isDisplaying && drawPause) {
+      otherDraw(canvas.getContext('2d'), prev_image)
+      socket.emit('imageSend', ROOM_ID, user_id, prev_image)
+    }
+  }
   if(e.key == '*')   //화면공유
     displayPlay()
-  if(e.key == '-') {//화면 정지
+  if(e.key == '-' && isDisplaying) {//화면 정지
     drawPause = !drawPause
     socket.emit('drawPause_script',drawPause, ROOM_ID)
   }
@@ -340,14 +342,15 @@ document.addEventListener("DOMContentLoaded", ()=> {
       mainLoop()
     }
     else {
-      setTimeout(outerLoop, 200)
+      setTimeout(outerLoop, 25)
     }
   }
   function mainLoop() {
     width = parseInt(window.innerWidth*0.782)
     height = parseInt(window.innerHeight*0.793)
-    if((canvas.width != width || canvas.height != height) && !isDisplaying) {
+    if(canvas.width != width || canvas.height != height) {
       socket.emit('reDrawing')
+      otherDraw(context, prev_image)
       canvas.width = width
       canvas.height = height
     }
