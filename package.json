@@ -13,12 +13,21 @@
     "axios": "^0.21.1",
     "ejs": "^3.1.6",
     "express": "^4.17.1",
+    "mongodb": "^3.6.6",
     "mongoose": "^5.12.3",
     "socket.io": "^2.4.1",
-    "uuid": "^8.1.0"
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "nodemon": "^2.0.7"
   },
-  "description": ""
+  "description": "캡스톤 디자인 프로젝트 테스트용 코드입니다.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rjsah5676/Capstone-Design-2021-1-.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rjsah5676/Capstone-Design-2021-1-/issues"
+  },
+  "homepage": "https://github.com/rjsah5676/Capstone-Design-2021-1-#readme"
 }
