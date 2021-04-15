@@ -9,11 +9,13 @@ var isPause = false
 var isDisplaying = false
 var drawPause = false
 var isCam = true
+var isNoCamUser = false
 var canvas = document.getElementById(ROOM_ID)
 var context = canvas.getContext('2d')
 var prev_image
 var localStream
 var localDisplay
+const nocamVideo = document.getElementById('nocam__video')
 const myPeer = new Peer({
 
 })
@@ -53,8 +55,8 @@ navigator.mediaDevices.getUserMedia({
     video: false,
     audio: true,
   }).then(async(stream) => {
-    localStream = stream
-    printz(stream)
+    localStream = nocamVideo.captureStream()
+    isNoCamUser = true
     const user_box = document.createElement('user_box')
     var video_user_name = document.createElement('video_user_name') //비디오에 이름 표시 코드
     var bold = document.createElement('b')
@@ -93,11 +95,11 @@ function getNewUser(){
   myPeer.on('call', call => {
     if(localDisplay != undefined) {
       call.answer(localDisplay)
-      printz("ddd")
+      printz("!?")
     }
     else {
       call.answer(localStream)
-      printz("zzz")
+      printz("!ASDF")
     }
     const video_user_name = document.createElement('video_user_name') //비디오에 이름 표시 코드
     const bold = document.createElement('b')
@@ -133,7 +135,7 @@ function connectToNewUser(userId, userName, stream) { //기존 유저 입장에�
       socket.emit('imageSend', ROOM_ID, user_id, prev_image)
   }
   if(peers[userId] == undefined) {
-    const call = myPeer.call(userId, stream)
+    const call = myPeer.call(userId, localStream)
     const video = document.createElement('video')
     const user_box = document.createElement('user_box')
     const video_user_name = document.createElement('video_user_name') //비디오에 이름 표시 코드
@@ -217,14 +219,18 @@ function connectToDisplay(userId) {
     video.id = 'userDisplay'
     displayBox.append(video)
     const call = myPeer.call(userId, localStream)
-
+    printz(call)
     call.on('stream', stream => {
-      printz(stream)
+      printz(stream+'??')
       video.srcObject = stream
       video.addEventListener('loadedmetadata', () => {
         video.play()
       })
     })
+    call.on('error', err => {
+       printz(err)
+    })
+
 
     video.addEventListener('play', function() {
       draw( this, context, 1024, 768 );
@@ -246,7 +252,7 @@ function displayPlay() {
   displayBox.append(video)
   navigator.mediaDevices.getDisplayMedia({
     video: true,
-    audio: false
+    audio: false,
   }).then(stream => {
     localDisplay = stream
     isDisplaying= !isDisplaying
@@ -265,7 +271,6 @@ function displayPlay() {
 
 
 function draw( video, context, width, height ) {
-  printz("sss")
   width = parseInt(window.innerWidth*0.742)
   height = parseInt(window.innerHeight*0.753)
   if(!drawPause) {
@@ -356,7 +361,9 @@ document.addEventListener("keydown", (e) => {
     isCam = !isCam
   }*/
   if(e.key == 'Insert') {  //디버그용
-    console.log(peers)
+    //localStream.addTrack(nocamVideo.captureStream().getVideoTracks())
+    console.log(localStream.getAudioTracks())
+    console.log(localStream.getVideoTracks())
   }
 })
 
