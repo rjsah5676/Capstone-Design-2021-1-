@@ -82,8 +82,11 @@ io.on('connection', socket => {
   socket.on('new_display_connect', (roomId, userId, newUserId) => {
     io.emit('new_display_connected', roomId, userId, newUserId)
   })
-  socket.on('stream_play', (userId, roomId, isCam) => {
-    io.emit('streamPlay', userId, roomId, isCam)
+  socket.on('stream_play', (userId, roomId) => {
+    io.emit('streamPlay', userId, roomId)
+  })
+  socket.on('mute_request', (userId, roomId, isMute) => {
+    io.emit('muteRequest', userId, roomId, isMute)
   })
 
   socket.on('getName', async (userId) =>{ //유저 이름 달아줌
