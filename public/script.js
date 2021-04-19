@@ -18,6 +18,8 @@ var isCam = true
 var isMute = true
 var isNoCamUser = false
 var isMuteUser = false
+var isCall = {}
+var isDisplayCall = {}
 var canvas = document.getElementById(ROOM_ID)
 var context = canvas.getContext('2d')
 var prevImage
@@ -50,7 +52,8 @@ function userJoin(stream, stream2)
   getNewUser()
 
   socket.on('user-connected', (userId, userName) => {
-    connectToNewUser(userId, userName)
+    isCall[userId] = true
+    connectionLoop(userId, userName)
   })
 }
 
@@ -91,6 +94,9 @@ myPeer.on('open', id => {
 })
 
 function getNewUser(){
+  myPeer.on('error', err => {
+    printz(err.type)
+  })
   myPeer.on('call', call => {
     if(isDisplayHost && localStream.flag == 2)
       call.answer(localDisplay)
@@ -124,6 +130,19 @@ function getNewUser(){
   })
 }
 
+function connectionLoop(userId, userName)
+{
+  if(isCall[userId]) {
+    printz("efg")
+    peers[userId] = undefined
+    connectToNewUser(userId, userName)
+    setTimeout(connectionLoop, 2000, userId, userName)
+  }
+  else {
+    printz("abc")
+  }
+}
+
 function connectToNewUser(userId, userName) { //기존 유저 입장에서 새로운 유저가 들어왔을 때
   localStream.flag = 2
   if(isDisplayHost) { //화면공유중일때 새로 들어온 유저가 화면공유 보도록
@@ -133,10 +152,11 @@ function connectToNewUser(userId, userName) { //기존 유저 입장에서 새�
     if(prevImage != undefined && prevImage != null && drawPause)
       socket.emit('imageSend', ROOM_ID, user_id, prevImage)
   }
-  if(!isCam)
-    socket.emit('streamPlay_server', user_id,ROOM_ID)
-  socket.emit('muteRequest_server', user_id,ROOM_ID,isMute)
+  //if(!isCam)  캠 끈거 들어오자마자 받아들이는 건데 일단 보류
+    //socket.emit('streamPlay_server', user_id,ROOM_ID)
+  //socket.emit('muteRequest_server', user_id,ROOM_ID,isMute)
   if(peers[userId] == undefined) {
+    printz("아아")
     const call = myPeer.call(userId, localStream)
     const video = document.createElement('video')
     const userBox = document.createElement('userBox')
@@ -145,6 +165,7 @@ function connectToNewUser(userId, userName) { //기존 유저 입장에서 새�
     const videoUserNameText = document.createTextNode(userName)
 
     call.on('stream', userVideoStream => {
+      isCall[userId] = false
       video.id = userId + '!video' //bold랑 차이두기 위해 !붙임
       videoUserName.appendChild(bold)
 
@@ -213,37 +234,53 @@ sendButton.addEventListener('click', function(){
   chatInput.value = '';
 });
 
+function connectionDisplayLoop(userId)
+{
+  if(isDisplayCall[userId]) {
+    printz("display1")
+    connectToDisplay(userId)
+    setTimeout(connectionDisplayLoop, 2000, userId)
+  }
+  else {
+    printz("display2")
+  }
+}
+
 //---화면 공유---
 function connectToDisplay(userId) {
     var displayBox = document.getElementById('displayBox')
     var video = document.createElement('video')
     video.id = 'userDisplay'
-    displayBox.append(video)
     const call = myPeer.call(userId, localStream)
     call.on('stream', stream => {
+      displayBox.append(video)
+      isDisplayCall[userId] = false
       video.srcObject = stream
       video.addEventListener('loadedmetadata', () => {
         video.play()
       })
+
+      video.addEventListener('play', function() {
+        draw( this, context, 1024, 768 );
+      }, false )
     })
     call.on('error', err => {
     })
-
-    video.addEventListener('play', function() {
-      draw( this, context, 1024, 768 );
-    }, false )
 }
 socket.on('displayConnect_script', (roomId, userId) => {
-  if(roomId == ROOM_ID && userId != user_id)
-    connectToDisplay(userId)
+  if(roomId == ROOM_ID && userId != user_id) {
+    isDisplayCall[userId] = true
+    connectionDisplayLoop(userId)
+  }
 })
 socket.on('newDisplayConnect_script', (roomId, userId, newUserId) => {
-  if(roomId == ROOM_ID && userId != user_id && newUserId == user_id)
-    connectToDisplay(userId)
+  if(roomId == ROOM_ID && userId != user_id && newUserId == user_id) {
+    isDisplayCall[userId] = true
+    connectionDisplayLoop(userId)
+  }
 })
 
 function displayPlay() {
-  localStream.flag = 2
   var displayBox = document.getElementById('displayBox')
   var video = document.createElement('video')
   video.id = 'userDisplay'
@@ -252,6 +289,7 @@ function displayPlay() {
     video: true,
     audio: false,
   }).then(stream => {
+    localStream.flag = 2
     localDisplay = stream
     localDisplay.flag = 1
     isDisplaying= !isDisplaying
@@ -354,14 +392,15 @@ document.addEventListener("keydown", (e) => {
     }
     isCam = !isCam
   }
-  if(e.key == '+' && !isMuteUser) {
+  /*
+  if(e.key == '+' && !isMuteUser) { 음소거 일단 보류
     if(isMute)
       socket.emit('muteRequest_server', user_id,ROOM_ID,isMute)
     isMute = !isMute
-  }
+  }*/
   if(e.key == 'Insert') {  //디버그용
     printz(localStream.flag)
-    printz(localDisplay.flag)
+    printz(peers)
   }
 })
 
@@ -448,7 +487,6 @@ document.addEventListener("DOMContentLoaded", ()=> {
     context.stroke()
     }
   })
-
   function outerLoop(){
     if(drawPause) {
       mainLoop()
