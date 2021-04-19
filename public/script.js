@@ -291,7 +291,6 @@ function displayPlay() {
   }).then(stream => {
     localStream.flag = 2
     localDisplay = stream
-    localDisplay.flag = 1
     isDisplaying= !isDisplaying
     isDisplayHost= true
     socket.emit('isDisplaying_script', isDisplaying, ROOM_ID)
@@ -318,16 +317,6 @@ function draw( video, context, width, height ) {
       canvas.width = width
       canvas.height = height
     }
-    /*
-    var img = new Image();
-    img.addEventListener('load', ()=> {
-      context.drawImage(img, 0,0)
-    })
-    img.src = prevImage
-    */
-
-    //if(prevImage != undefined && prevImage != null)
-     //socket.emit('imageSend', ROOM_ID, user_id, prevImage)
   }
   setTimeout(draw, 50, video, context, width, height)  //20프레임
 }
@@ -373,7 +362,7 @@ document.addEventListener("keydown", (e) => {
     socket.emit('drawPause_script',drawPause, ROOM_ID)
   }
    
-  if(e.key == '/' && !isNoCamUser) {
+  if(e.key == '/' && !isNoCamUser) {  //렉 심해지는 버그 잇음
     if(isCam) {
       localStream.flag = 1
       myVideo.srcObject = nocamVideo.captureStream()
