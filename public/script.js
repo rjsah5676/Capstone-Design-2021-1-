@@ -259,6 +259,7 @@ function connectToDisplay(userId) {
     video.id = 'userDisplay'
     const call = myPeer.call(userId, localStream)
     call.on('stream', stream => {
+      isDisplaying = true
       localDisplay = stream
       displayBox.append(video)
       isDisplayCall[userId] = false
@@ -300,7 +301,7 @@ function displayPlay() {
     localDisplay = stream
     isDisplaying= !isDisplaying
     isDisplayHost= true
-    socket.emit('isDisplaying_script', isDisplaying, ROOM_ID)
+    //socket.emit('isDisplaying_script', isDisplaying, ROOM_ID)
     video.srcObject = stream
     video.play();
     socket.emit('displayConnect_server', ROOM_ID, user_id)
