@@ -1,6 +1,7 @@
 /*
   화면공유 필기 중에 들어오는 유저는 필기 확인 불가 버그(화면 크기 바꾸면 다시 돌아옴)
-  캠 끄기 켜기 기능 사용시 렉 심해지는 버그(아직 원인 불명)
+  화면공유 했을 때 안넘어가는 경우가있음.
+  캠 끄기 켜기 기능 최적화가 필요할듯
 */
 var user_name = prompt('대화명을 입력해주세요.', '')
 
@@ -158,6 +159,8 @@ function getNewUser(){
 function connectionLoop(userId, userName) //피어 연결이 제대로 될 때 까지 반복
 {
   if(isCall[userId]) {
+    if(peers[userId] != undefined)
+      peers[userId].close()
     peers[userId] = undefined
     connectToNewUser(userId, userName)
     setTimeout(connectionLoop, 2000, userId, userName)
@@ -262,6 +265,8 @@ sendButton.addEventListener('click', function(){
 function connectionDisplayLoop(userId)
 {
   if(isDisplayCall[userId]) {
+    if(displayCall != undefined)
+      displayCall.close()
     connectToDisplay(userId)
     setTimeout(connectionDisplayLoop, 2000, userId)
   }
