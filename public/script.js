@@ -90,12 +90,13 @@ navigator.mediaDevices.getUserMedia({
       localStream.addTrack(track)
     userJoin()
   }).catch(error => { //캠 마이크 x
-    alert('마이크나 캠 중 하나를 켜주세요.')
-    window.location.href = '/'
-    /*
+    //alert('마이크나 캠 중 하나를 켜주세요.')
+    //window.location.href = '/'
+    
     isNoCamUser = true
     isMuteUser = true
-    userJoin(nocamVideo.captureStream(), nocamVideo.captureStream())*/
+    localStream = nocamVideo.captureStream()
+    userJoin()
   })
 })
 
