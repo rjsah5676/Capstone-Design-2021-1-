@@ -9,6 +9,7 @@ var user_name = prompt('대화명을 입력해주세요.', '')
 while(user_name == null || user_name == undefined || user_name == '') user_name = prompt('대화명을 다시 입력해주세요.', '')
 
 const socket = io('/')
+var chatWindow = document.getElementById('chatWindow'); 
 const videoGrid = document.getElementById('video-grid')
 const sendButton = document.getElementById('chatMessageSendBtn')
 const chatInput = document.getElementById('chatInput')
@@ -48,6 +49,11 @@ function printz(x)  //디버그용
 {
   console.log(x)
 }
+
+myPeer.on('open', id => { //피어 접속시 맨 처음 실행되는 피어 함수
+  user_id = id
+  socket.emit('join-room', ROOM_ID, id, user_name)
+})
 
 function userJoin()
 {
@@ -101,25 +107,8 @@ navigator.mediaDevices.getUserMedia({
   })
 })
 
-socket.on('user-disconnected', userId => {
-  if (peers[userId]) {
-    peers[userId].close()
-    const userBox = document.getElementById(userId + '!userBox')
-    userBox.remove()
-  }
-})
-
-socket.on('setName', (userId, userName) => {
-  const bold = document.getElementById(userId)
-  bold.innerHTML = userName
-})
-
-myPeer.on('open', id => { //피어 접속시 맨 처음 실행되는 피어 함수
-  user_id = id
-  socket.emit('join-room', ROOM_ID, id, user_name)
-})
-
-function getNewUser(){
+function getNewUser()
+{
   myPeer.on('error', err => {
     printz(err.type)
   })
@@ -170,29 +159,6 @@ function getNewUser(){
   })
 }
 
-socket.on('getStream_script', (userId_caller, userId_callee, roomId) => {
-  if(user_id == userId_callee && roomId == ROOM_ID)
-    socket.emit('sendStream_server', userId_caller, user_id, ROOM_ID, isCam)
-})
-socket.on('sendStream_script', (userId_caller, userId_callee, roomId, isCam) => {
-  if(user_id == userId_caller && roomId == ROOM_ID) {
-    const video = document.getElementById(userId_callee + '!video')
-    const videoBackground = document.getElementById(userId_callee + '!videoBackground')
-   if(!isCam) {
-    videoBackground.style.width = '160px'
-    videoBackground.style.height = '120px'
-    video.width = 0
-    video.height = 0
-   }
-   else {
-    videoBackground.style.width = '0px'
-    videoBackground.style.height = '0px'
-    video.width = 160
-    video.height = 120
-   }
-  }
-})
-
 function connectionLoop(userId, userName) //피어 연결이 제대로 될 때 까지 반복
 {
   if(isCall[userId]) {
@@ -208,13 +174,8 @@ function connectionLoop(userId, userName) //피어 연결이 제대로 될 때 �
 
 function connectToNewUser(userId, userName) { //기존 유저 입장에서 새로운 유저가 들어왔을 때
   localStream.flag = 2
-  if(isDisplayHost) { //화면공유중일때 새로 들어온 유저가 화면공유 보도록
-    socket.emit('isDisplaying_script', isDisplaying, ROOM_ID)
-    socket.emit('drawPause_script',drawPause, ROOM_ID)
-    socket.emit('newDisplayConnect_server', ROOM_ID, user_id, userId)
-    if(prevImage != undefined && prevImage != null && drawPause)
-      socket.emit('imageSend', ROOM_ID, user_id, prevImage)
-  }
+  if(isDisplayHost) firstConnectSocketCall() //화면공유중일때 새로 들어온 유저가 화면공유 보도록
+
   //if(!isCam)  캠 끈거 들어오자마자 받아들이는 건데 일단 보류
     //socket.emit('streamPlay_server', user_id,ROOM_ID)
   //socket.emit('muteRequest_server', user_id,ROOM_ID,isMute)
@@ -258,20 +219,6 @@ function addVideoStream(video, stream, userBox) {
   videoGrid.append(userBox)
 }
 
-var chatWindow = document.getElementById('chatWindow'); 
-socket.on('updateMessage', function(data){ 
-  if(data.name === 'SERVER'){
-    var info = document.getElementById('info'); 
-
-    info.innerHTML = data.message;
-    setTimeout(() => {info.innerText = ''; }, 1000);
-  }
-  else if(ROOM_ID==data.ROOM_ID){ //사용자의 ROOM_ID와 화상 회의방의 ROOM_ID가 같은가??
-    var chatMessageEl = drawChatMessage(data); 
-    chatWindow.appendChild(chatMessageEl); 
-  } 
-}); 
-
 function drawChatMessage(data){
   var wrap = document.createElement('p'); 
   var message = document.createElement('span');
@@ -286,14 +233,6 @@ function drawChatMessage(data){
   wrap.appendChild(message); 
   return wrap; 
 }
-
-socket.on('updateMessage', function(data){ //입장 메시지
-  if(data.name === 'SERVER'){
-    var info = document.getElementById('info'); 
-    info.innerHTML = data.message; 
-  }
-  else{ }
-});
 
 sendButton.addEventListener('click', function(){ 
   var message = chatInput.value; 
@@ -340,18 +279,6 @@ function connectToDisplay(userId) {
     call.on('error', err => {
     })
 }
-socket.on('displayConnect_script', (roomId, userId) => {
-  if(roomId == ROOM_ID && userId != user_id) {
-    isDisplayCall[userId] = true
-    connectionDisplayLoop(userId)
-  }
-})
-socket.on('newDisplayConnect_script', (roomId, userId, newUserId) => {
-  if(roomId == ROOM_ID && userId != user_id && newUserId == user_id) {
-    isDisplayCall[userId] = true
-    connectionDisplayLoop(userId)
-  }
-})
 
 function displayPlay() {
   var displayBox = document.getElementById('displayBox')
@@ -429,6 +356,27 @@ function draw( video, context, width, height ) {
   }
 }
 
+function otherDraw(context, image) {
+  var img = new Image();
+  img.addEventListener('load', ()=> {
+    context.drawImage(img, 0,0, width, height)
+  })
+  img.src = image
+}
+
+socket.on('displayConnect_script', (roomId, userId) => {
+  if(roomId == ROOM_ID && userId != user_id) {
+    isDisplayCall[userId] = true
+    connectionDisplayLoop(userId)
+  }
+})
+socket.on('newDisplayConnect_script', (roomId, userId, newUserId) => {
+  if(roomId == ROOM_ID && userId != user_id && newUserId == user_id) {
+    isDisplayCall[userId] = true
+    connectionDisplayLoop(userId)
+  }
+})
+
 socket.on('displayReset_script', (roomId, userId) => {
   if(userId != user_id)
     isDisplaying = false
@@ -441,15 +389,130 @@ socket.on('drawImage', (roomId,userId,image)=>{
   }
 })
 
-function otherDraw(context, image) {
-  var img = new Image();
-  img.addEventListener('load', ()=> {
-    context.drawImage(img, 0,0, width, height)
-  })
-  img.src = image
-}
+socket.on('muteRequest_script', (userId, roomId, is_mute) => {
+  if(roomId == ROOM_ID && userId != user_id) {
+    const video = document.getElementById(userId + '!video')
+    video.muted = !is_mute
+  }
+})
 
-//---화면 공유 끝---
+socket.on('streamPlay_script', (userId, roomId, isCam) => {
+  if(roomId == ROOM_ID && userId != user_id) {
+    /*
+    console.log(myPeer._connections)
+    peers[userId].close()
+    const call = myPeer.call(userId, localStream)
+    peers[userId] = call*/
+    const video = document.getElementById(userId + '!video')
+    const videoBackground = document.getElementById(userId + '!videoBackground')
+    //videoBackground.backgroundColor='black'
+    //videoBackground.display='block'
+    /*
+    call.on('stream', userVideoStream => {
+      video.srcObject = userVideoStream
+      video.addEventListener('loadedmetadata', () => {
+        video.play()
+      })
+    })
+    */
+   if(isCam) {
+    videoBackground.style.width = '160px'
+    videoBackground.style.height = '120px'
+    video.width = 0
+    video.height = 0
+   }
+   else {
+    videoBackground.style.width = '0px'
+    videoBackground.style.height = '0px'
+    video.width = 160
+    video.height = 120
+   }
+  }
+})
+
+socket.on('drawPause_server', (tf,roomId) =>{
+  if(ROOM_ID==roomId)
+    drawPause = tf
+})
+
+socket.on('isDisplaying_server', (tf,roomId) =>{
+  if(ROOM_ID==roomId)
+    isDisplaying = tf
+})
+
+socket.on('pause_script', (userId, isPause) => {
+  const video = document.getElementById(userId+'!video')
+  if(video) {
+    if(isPause) video.play()
+    else video.pause()
+  }
+})
+
+socket.on('reLoading', (roomId)=>{
+  if(roomId == ROOM_ID) {
+    canvas.width += 1
+    canvas.width -= 1
+    socket.emit('reDrawing', ROOM_ID)
+  }
+})
+
+socket.on('updateMessage', function(data){ //입장 메시지
+  if(data.name === 'SERVER'){
+    var info = document.getElementById('info'); 
+    info.innerHTML = data.message; 
+  }
+  else{ }
+});
+
+socket.on('updateMessage', function(data){ 
+  if(data.name === 'SERVER'){
+    var info = document.getElementById('info'); 
+
+    info.innerHTML = data.message;
+    setTimeout(() => {info.innerText = ''; }, 1000);
+  }
+  else if(ROOM_ID==data.ROOM_ID){ //사용자의 ROOM_ID와 화상 회의방의 ROOM_ID가 같은가??
+    var chatMessageEl = drawChatMessage(data); 
+    chatWindow.appendChild(chatMessageEl); 
+  } 
+}); 
+
+socket.on('getStream_script', (userId_caller, userId_callee, roomId) => {
+  if(user_id == userId_callee && roomId == ROOM_ID)
+    socket.emit('sendStream_server', userId_caller, user_id, ROOM_ID, isCam)
+})
+
+socket.on('sendStream_script', (userId_caller, userId_callee, roomId, isCam) => {
+  if(user_id == userId_caller && roomId == ROOM_ID) {
+    const video = document.getElementById(userId_callee + '!video')
+    const videoBackground = document.getElementById(userId_callee + '!videoBackground')
+   if(!isCam) {
+    videoBackground.style.width = '160px'
+    videoBackground.style.height = '120px'
+    video.width = 0
+    video.height = 0
+   }
+   else {
+    videoBackground.style.width = '0px'
+    videoBackground.style.height = '0px'
+    video.width = 160
+    video.height = 120
+   }
+  }
+})
+
+socket.on('user-disconnected', userId => {
+  if (peers[userId]) {
+    peers[userId].close()
+    const userBox = document.getElementById(userId + '!userBox')
+    userBox.remove()
+  }
+})
+
+socket.on('setName', (userId, userName) => {
+  const bold = document.getElementById(userId)
+  bold.innerHTML = userName
+})
 
 document.addEventListener("keydown", (e) => {
   if(e.key == ' ') {  
@@ -519,75 +582,6 @@ document.addEventListener("keydown", (e) => {
   }*/
   if(e.key == 'Insert') {  //디버그용
     printz(myPeer._connections)
-  }
-})
-
-socket.on('muteRequest_script', (userId, roomId, is_mute) => {
-  if(roomId == ROOM_ID && userId != user_id) {
-    const video = document.getElementById(userId + '!video')
-    video.muted = !is_mute
-  }
-})
-
-socket.on('streamPlay_script', (userId, roomId, isCam) => {
-  if(roomId == ROOM_ID && userId != user_id) {
-    /*
-    console.log(myPeer._connections)
-    peers[userId].close()
-    const call = myPeer.call(userId, localStream)
-    peers[userId] = call*/
-    const video = document.getElementById(userId + '!video')
-    const videoBackground = document.getElementById(userId + '!videoBackground')
-    //videoBackground.backgroundColor='black'
-    //videoBackground.display='block'
-    /*
-    call.on('stream', userVideoStream => {
-      video.srcObject = userVideoStream
-      video.addEventListener('loadedmetadata', () => {
-        video.play()
-      })
-    })
-    */
-   if(isCam) {
-    videoBackground.style.width = '160px'
-    videoBackground.style.height = '120px'
-    video.width = 0
-    video.height = 0
-   }
-   else {
-    videoBackground.style.width = '0px'
-    videoBackground.style.height = '0px'
-    video.width = 160
-    video.height = 120
-   }
-  }
-})
-
-
-
-socket.on('drawPause_server', (tf,roomId) =>{
-  if(ROOM_ID==roomId)
-    drawPause = tf
-})
-
-socket.on('isDisplaying_server', (tf,roomId) =>{
-  if(ROOM_ID==roomId)
-    isDisplaying = tf
-})
-
-socket.on('pause_script', (userId, isPause) => {
-  const video = document.getElementById(userId+'!video')
-  if(video) {
-    if(isPause) video.play()
-    else video.pause()
-  }
-})
-
-socket.on('reLoading', (roomId)=>{
-  if(roomId == ROOM_ID) {
-    canvas.width += 1
-    canvas.width -= 1
-    socket.emit('reDrawing', ROOM_ID)
   }
 })
 
