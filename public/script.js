@@ -17,12 +17,16 @@ const nocamVideo = document.getElementById('nocam__video')
 const myVideo = document.createElement('video')
 const myDisplay = document.createElement('video')
 const myVideoBackground = document.createElement('videoBackground')
+const extractColorVideo = document.createElement('canvas')
+extractColorVideo.width = 0
+extractColorVideo.height = 0
 myDisplay.id = 'display'
 myVideo.muted = true
 myVideo.width = 160
 myVideo.height = 120
 
 var user_id
+var isCamWrite = false
 var isDisplayHost = false
 var isPause = false
 var isDisplaying = false
@@ -37,6 +41,7 @@ var isDisplayCall = {}
 var offDisplay = false
 var canvas = document.getElementById(ROOM_ID)
 var context = canvas.getContext('2d')
+var extractContext = extractColorVideo.getContext('2d')
 var prevImage
 var localStream
 var localDisplay
@@ -48,6 +53,128 @@ const peers = {}
 function printz(x)  //디버그용
 {
   console.log(x)
+}
+
+extractColorVideo.addEventListener('click', (event) => { 
+  const test = document.getElementById('output');
+  //var ctx = test.getContext('2d');
+  var imageData = extractContext.getImageData(0, 0, 160, 120);
+  imageData.getRGBA = function(i,j,k){
+    return this.data[this.width*4*j+4*i+k];
+  };
+  var x = event.offsetX;
+  var y = event.offsetY;
+  alert("현재 좌표는 : "+x+" / " +y);
+  var R = imageData.getRGBA(x,y,0);
+  var G = imageData.getRGBA(x,y,1);
+  var B = imageData.getRGBA(x,y,2);
+  console.log("R : "+R +", G : ," + G + " B : " + B);
+  //const ctest = document.getElementById('coloroutput').getContext("2d");
+  //ctest.fillStyle = "rgb("+R+","+G+","+B+")";
+  //ctest.fillRect(0,0,50,50);
+  fun_mask(R,G,B);
+});
+
+function extractDraw( video, context, width, height ) {
+  //const test = document.getElementById('output');
+  if(isCamWrite) {
+    let src = new cv.Mat(height, width, cv.CV_8UC4);
+    let cap = new cv.VideoCapture(myVideo);
+    cap.read(src);
+    cv.imshow(extractColorVideo,src);
+    setTimeout(extractDraw, 50, video, context, width, height)  //20프레임
+  }
+}
+function rgb2hsv (r, g, b) {
+  let rabs, gabs, babs, rr, gg, bb, h, s, v, diff, diffc, percentRoundFn;
+  rabs = r / 255;
+  gabs = g / 255;
+  babs = b / 255;
+  v = Math.max(rabs, gabs, babs),
+  diff = v - Math.min(rabs, gabs, babs);
+  diffc = c => (v - c) / 6 / diff + 1 / 2;
+  percentRoundFn = num => Math.round(num * 100) / 100;
+  if (diff == 0) {
+      h = s = 0;
+  } else {
+      s = diff / v;
+      rr = diffc(rabs);
+      gg = diffc(gabs);
+      bb = diffc(babs);
+
+      if (rabs === v) {
+          h = bb - gg;
+      } else if (gabs === v) {
+          h = (1 / 3) + rr - bb;
+      } else if (babs === v) {
+          h = (2 / 3) + gg - rr;
+      }
+      if (h < 0) {
+          h += 1;
+      }else if (h > 1) {
+          h -= 1;
+      }
+  }
+  return {
+      h: Math.round(h * 360),
+      s: percentRoundFn(s * 100),
+      v: percentRoundFn(v * 100)
+  };
+}
+function fun_mask(R,G,B){
+  let tmp = new cv.Mat(120, 160, cv.CV_8UC4);
+  let cap = new cv.VideoCapture(myVideo);
+  cap.read(tmp);
+  console.log(R);
+  console.log(G);
+  console.log(B);
+  //let ctx = out.getContext("2d");
+  let imgData = extractContext.getImageData(0, 0, 160, 120);
+  let src = cv.matFromImageData(imgData);
+
+  let dst = new cv.Mat();
+  var thr = 15;
+  let low = new cv.Mat(src.rows, src.cols, src.type(), [R-thr, G-thr, B-thr, 0]);
+  let high = new cv.Mat(src.rows, src.cols, src.type(), [R+thr, G+thr, B+thr, 255]);
+  
+  cv.inRange(src, low, high, dst);
+  //let tmpimg = new cv.Mat();
+  //cv.cvtColor(src, tmpimg, cv.COLOR_RGBA2GRAY,0);
+  
+  //cv.imshow(out,tmpimg);
+  let ret = new cv.Mat();
+  cv.bitwise_and(src, src, ret, dst);
+
+  
+  cv.cvtColor(ret, ret, cv.COLOR_RGBA2GRAY, 0);
+  cv.threshold(ret, ret, 0, 200, cv.THRESH_BINARY);
+  let contours = new cv.MatVector();
+  let hierarchy = new cv.Mat();
+  
+  cv.findContours(ret, contours, hierarchy, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
+
+  // let contourtest = cv.Mat.zeros(src.rows, src.cols, cv.CV_8UC3);
+  // let contoursColor = new cv.Scalar(255, 255, 255);
+  // cv.drawContours(contourtest, contours, 0, contoursColor, 1, 8, hierarchy, 100);
+
+  var cntareas=[];
+  for(let i = 0;i<contours.size();i++){
+    cntareas.push(cv.contourArea(contours.get(i)));
+  }
+  console.log(cntareas);
+  let maxx = 0;
+  let anspoint = 0;
+  for(let i = 0;i<cntareas.length;i++){
+      if(maxx < cntareas[i]){
+        console.log(cntareas[i]);
+        maxx = cntareas[i];
+        anspoint = i;
+      }
+  }
+  let ans = contours.get(anspoint);
+  let rect = cv.boundingRect(ans);
+
+  console.log(rect.x, rect.y);
 }
 
 myPeer.on('open', id => { //피어 접속시 맨 처음 실행되는 피어 함수
@@ -67,6 +194,7 @@ function userJoin()
   bold.appendChild(videoUserNameText)
   userBox.appendChild(videoUserName)
   userBox.appendChild(myVideoBackground)
+  userBox.appendChild(extractColorVideo)
   userBox.appendChild(myVideo)
   addVideoStream(myVideo, localStream, userBox)
 
@@ -304,7 +432,6 @@ function displayPlay() {
     draw( this, context, 1024, 768 );
   }, false )
 }
-
 
 function draw( video, context, width, height ) {
   if(isDisplayHost) {
@@ -582,6 +709,24 @@ document.addEventListener("keydown", (e) => {
   }*/
   if(e.key == 'Insert') {  //디버그용
     printz(myPeer._connections)
+  }
+  if(e.key == 'Home') {
+    if(!isCamWrite) {
+      alert("캠에서 펜으로 인식할 부분을 클릭해주세요");
+      myVideo.width = 160
+      myVideo.height = 120
+      myVideo.style.visibility = 'hidden'
+      extractColorVideo.width = 160
+      extractColorVideo.height = 120
+      isCamWrite = true
+      extractDraw(myVideo, extractContext, 160, 120)
+    }
+    else {
+      myVideo.style.visibility = 'visible'
+      extractColorVideo.width = 0
+      extractColorVideo.height = 0
+      isCamWrite = false
+    }
   }
 })
 
