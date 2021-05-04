@@ -55,6 +55,44 @@ function printz(x)  //디버그용
   console.log(x)
 }
 
+//제스처 테스트
+/*
+let handpose;
+let video;
+let predictions = [];
+
+
+function setup() {
+  createCanvas(640, 480);
+  video = createCapture(VIDEO);
+  video.hide();
+  handpose = ml5.handpose(video);
+  handpose.on("predict", gotResult);
+}
+
+function gotResult(results){
+  predictions = results;
+}
+
+function draw() {
+  image(video, 0, 0, width, height);
+  drawKeypoints();
+}
+
+function drawKeypoints() {
+  for (let i = 0; i < predictions.length; i += 1) {
+    const prediction = predictions[i];
+    for (let j = 0; j < prediction.landmarks.length; j += 1) {
+      const keypoint = prediction.landmarks[j];
+      fill(255, 0, 0);
+      noStroke();
+      ellipse(keypoint[0], keypoint[1], 10, 10);
+    }
+  }
+}
+*/
+//--제스처 테스트 끝--
+
 extractColorVideo.addEventListener('click', (event) => { 
   const test = document.getElementById('output');
   //var ctx = test.getContext('2d');
@@ -727,6 +765,9 @@ document.addEventListener("keydown", (e) => {
       extractColorVideo.height = 0
       isCamWrite = false
     }
+  }
+  if(e.key === 'Delete') {
+    window.open('/views/gesture')
   }
 })
 
