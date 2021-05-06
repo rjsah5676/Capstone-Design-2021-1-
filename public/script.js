@@ -1,6 +1,8 @@
 /*
   화면공유 필기 중에 들어오는 유저는 필기 확인 불가 버그(화면 크기 바꾸면 다시 돌아옴)
-  화면공유 했을 때 안넘어가는 경우가있음.
+  화면공유 했을 때 안넘어가는 경우가있음.(건모-> 형택: X, 형택->건모: O)
+  화면공유한 사람이 나가면 안됨
+  사람 많아지면 피어 꼬이는 경우 생김(최우선)
   모션 인식 연동
 */
 var user_name = prompt('대화명을 입력해주세요.', '')
@@ -57,6 +59,10 @@ function printz(x)  //디버그용
   console.log(x)
 }
 
+var R,G,B;
+
+var isCamWrite2 = false
+
 extractColorVideo.addEventListener('click', (event) => { 
   const test = document.getElementById('output');
   //var ctx = test.getContext('2d');
@@ -67,14 +73,15 @@ extractColorVideo.addEventListener('click', (event) => {
   var x = event.offsetX;
   var y = event.offsetY;
   alert("현재 좌표는 : "+x+" / " +y);
-  var R = imageData.getRGBA(x,y,0);
-  var G = imageData.getRGBA(x,y,1);
-  var B = imageData.getRGBA(x,y,2);
+  R = imageData.getRGBA(x,y,0);
+  G = imageData.getRGBA(x,y,1);
+  B = imageData.getRGBA(x,y,2);
   console.log("R : "+R +", G : ," + G + " B : " + B);
   //const ctest = document.getElementById('coloroutput').getContext("2d");
   //ctest.fillStyle = "rgb("+R+","+G+","+B+")";
   //ctest.fillRect(0,0,50,50);
-  fun_mask(R,G,B);
+  //fun_mask();
+  isCamWrite2 = true
 });
 
 function extractDraw( video, context, width, height ) {
@@ -84,7 +91,69 @@ function extractDraw( video, context, width, height ) {
     let cap = new cv.VideoCapture(myVideo);
     cap.read(src);
     cv.imshow(extractColorVideo,src);
-    setTimeout(extractDraw, 50, video, context, width, height)  //20프레임
+    src.delete()
+  if(isCamWrite2) {
+    let imgData = extractContext.getImageData(0, 0, 160, 120);
+    let src = cv.matFromImageData(imgData);
+
+    let dst = new cv.Mat();
+    var thr = 15;
+    let low = new cv.Mat(src.rows, src.cols, src.type(), [R-thr, G-thr, B-thr, 0]);
+    let high = new cv.Mat(src.rows, src.cols, src.type(), [R+thr, G+thr, B+thr, 255]);
+  
+    cv.inRange(src, low, high, dst);
+    //let tmpimg = new cv.Mat();
+    //cv.cvtColor(src, tmpimg, cv.COLOR_RGBA2GRAY,0);
+    
+    //cv.imshow(out,tmpimg);
+    let ret = new cv.Mat();
+    cv.bitwise_and(src, src, ret, dst);
+    
+    cv.cvtColor(ret, ret, cv.COLOR_RGBA2GRAY, 0);
+    cv.threshold(ret, ret, 0, 200, cv.THRESH_BINARY);
+    let contours = new cv.MatVector();
+    let hierarchy = new cv.Mat();
+    
+    cv.findContours(ret, contours, hierarchy, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
+
+    // let contourtest = cv.Mat.zeros(src.rows, src.cols, cv.CV_8UC3);
+    // let contoursColor = new cv.Scalar(255, 255, 255);
+    // cv.drawContours(contourtest, contours, 0, contoursColor, 1, 8, hierarchy, 100);
+
+    var cntareas=[];
+    for(let i = 0;i<contours.size();i++){
+      cntareas.push(cv.contourArea(contours.get(i)));
+    }
+    //console.log(cntareas);
+    let maxx = 0;
+    let anspoint = 0;
+    for(let i = 0;i<cntareas.length;i++){
+        if(maxx < cntareas[i]){
+          //console.log(cntareas[i]);
+          maxx = cntareas[i];
+          anspoint = i;
+        }
+    }
+    let ans = contours.get(anspoint);
+    if(ans!==undefined){
+      let rect = cv.boundingRect(ans);
+      cam_mouse.pos.x = (rect.x)
+      cam_mouse.pos.y = (rect.y)
+      if(cam_mouse.pos_prev) {
+        console.log("!@#")
+        socket.emit('drawLine', {line: [cam_mouse.pos, cam_mouse.pos_prev], roomId:ROOM_ID, size:[width, height]})
+      }
+      cam_mouse.pos_prev = {x: cam_mouse.pos.x, y: cam_mouse.pos.y}
+      ans.delete()
+    }
+    src.delete()
+    dst.delete()
+    ret.delete()
+    contours.delete()
+    hierarchy.delete()
+    low.delete()
+    high.delete()
+  }
   }
 }
 function rgb2hsv (r, g, b) {
@@ -122,61 +191,6 @@ function rgb2hsv (r, g, b) {
       s: percentRoundFn(s * 100),
       v: percentRoundFn(v * 100)
   };
-}
-function fun_mask(R,G,B){
-  let tmp = new cv.Mat(120, 160, cv.CV_8UC4);
-  let cap = new cv.VideoCapture(myVideo);
-  cap.read(tmp);
-  console.log(R);
-  console.log(G);
-  console.log(B);
-  //let ctx = out.getContext("2d");
-  let imgData = extractContext.getImageData(0, 0, 160, 120);
-  let src = cv.matFromImageData(imgData);
-
-  let dst = new cv.Mat();
-  var thr = 15;
-  let low = new cv.Mat(src.rows, src.cols, src.type(), [R-thr, G-thr, B-thr, 0]);
-  let high = new cv.Mat(src.rows, src.cols, src.type(), [R+thr, G+thr, B+thr, 255]);
-  
-  cv.inRange(src, low, high, dst);
-  //let tmpimg = new cv.Mat();
-  //cv.cvtColor(src, tmpimg, cv.COLOR_RGBA2GRAY,0);
-  
-  //cv.imshow(out,tmpimg);
-  let ret = new cv.Mat();
-  cv.bitwise_and(src, src, ret, dst);
-
-  
-  cv.cvtColor(ret, ret, cv.COLOR_RGBA2GRAY, 0);
-  cv.threshold(ret, ret, 0, 200, cv.THRESH_BINARY);
-  let contours = new cv.MatVector();
-  let hierarchy = new cv.Mat();
-  
-  cv.findContours(ret, contours, hierarchy, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
-
-  // let contourtest = cv.Mat.zeros(src.rows, src.cols, cv.CV_8UC3);
-  // let contoursColor = new cv.Scalar(255, 255, 255);
-  // cv.drawContours(contourtest, contours, 0, contoursColor, 1, 8, hierarchy, 100);
-
-  var cntareas=[];
-  for(let i = 0;i<contours.size();i++){
-    cntareas.push(cv.contourArea(contours.get(i)));
-  }
-  console.log(cntareas);
-  let maxx = 0;
-  let anspoint = 0;
-  for(let i = 0;i<cntareas.length;i++){
-      if(maxx < cntareas[i]){
-        console.log(cntareas[i]);
-        maxx = cntareas[i];
-        anspoint = i;
-      }
-  }
-  let ans = contours.get(anspoint);
-  let rect = cv.boundingRect(ans);
-
-  console.log(rect.x, rect.y);
 }
 
 myPeer.on('open', id => { //피어 접속시 맨 처음 실행되는 피어 함수
@@ -645,7 +659,6 @@ socket.on('sendStream_script', (userId_caller, userId_callee, roomId, isCam) => 
   if(user_id == userId_caller && roomId == ROOM_ID) {
     const video = document.getElementById(userId_callee + '!video')
     const videoBackground = document.getElementById(userId_callee + '!videoBackground')
-    console.log(videoBackground)
     if(!isCam) {
       videoBackground.style.width = '160px'
       videoBackground.style.height = '120px'
@@ -741,10 +754,10 @@ document.addEventListener("keydown", (e) => {
     isMute = !isMute
   }*/
   if(e.key == 'Insert') {  //디버그용
-    console.log(window.innerWidth)
-    console.log(window.innerHeight)
+    console.log(isCamWrite)
+    console.log(isCamWrite2)
   }
-  if(e.key == 'Home') {
+  if(e.key == 'Home' && !isNoCamUser) {
     if(!isCamWrite) {
       alert("캠에서 펜으로 인식할 부분을 클릭해주세요");
       myVideo.width = 160
@@ -753,7 +766,6 @@ document.addEventListener("keydown", (e) => {
       extractColorVideo.width = 160
       extractColorVideo.height = 120
       isCamWrite = true
-      extractDraw(myVideo, extractContext, 160, 120)
     }
     else {
       myVideo.style.visibility = 'visible'
@@ -764,19 +776,26 @@ document.addEventListener("keydown", (e) => {
   }
 })
 
+var mouse = {
+  click: false,
+  move: false,
+  pos: {x:0, y:0},
+  pos_prev: false
+}
+var cam_mouse = {
+  click: false,
+  move: false,
+  pos: {x:0, y:0},
+  pos_prev: false
+}
+var relativeX = 3
+var relativeY = 188
+
 var width = window.innerWidth
 var height = window.innerHeight
 //---캔버스 코드 시작---
 document.addEventListener("DOMContentLoaded", ()=> {
-  var mouse = {
-    click: false,
-    move: false,
-    pos: {x:0, y:0},
-    pos_prev: false
-  }
   var socket = io.connect()
-  var relativeX = 3
-  var relativeY = 188
   canvas.width = parseInt(width*rX)
   canvas.height = parseInt(height-200)
 
@@ -792,7 +811,10 @@ document.addEventListener("DOMContentLoaded", ()=> {
   socket.on('drawLine', data => {
     var line = data.line
     var size = data.size
-
+    console.log(line[0].x * (width/size[0]))
+    console.log(line[0].y * (height/size[1]))
+    console.log(line[1].x * (width/size[0]))
+    console.log(line[1].y * (height/size[1]))
     if(ROOM_ID == data.roomId) {
     context.beginPath()
     context.lineWidth = 2
@@ -812,6 +834,9 @@ document.addEventListener("DOMContentLoaded", ()=> {
   function mainLoop() {
     if(isDisplaying && !drawPause) {
       draw(displayVideo, context, 1024, 768)
+    }
+    if(isCamWrite) {
+      extractDraw(myVideo, extractContext, 160, 120)
     }
     width = parseInt(window.innerWidth*rX)
     height = parseInt(window.innerHeight-200)
