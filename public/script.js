@@ -19,6 +19,12 @@ const myVideo = document.createElement('video')
 const myDisplay = document.createElement('video')
 const myVideoBackground = document.createElement('videoBackground')
 const extractColorVideo = document.createElement('canvas')
+const hiddenCamVideo = document.createElement('canvas')
+const extractCamArea = document.getElementById('extractCamArea')
+hiddenCamVideo.style.visibility = 'hidden'
+extractCamArea.style.width = 0
+extractCamArea.style.height = 0
+extractCamArea.appendChild(hiddenCamVideo)
 extractColorVideo.width = 0
 extractColorVideo.height = 0
 myDisplay.id = 'display'
@@ -43,6 +49,7 @@ var offDisplay = false
 var canvas = document.getElementById(ROOM_ID)
 var context = canvas.getContext('2d')
 var extractContext = extractColorVideo.getContext('2d')
+var hiddenCamContext = hiddenCamVideo.getContext('2d')
 var prevImage
 var localStream
 var localDisplay
@@ -87,13 +94,29 @@ extractColorVideo.addEventListener('click', (event) => {
 function extractDraw( video, context, width, height ) {
   //const test = document.getElementById('output');
   if(isCamWrite) {
+    extractContext.save()
+    extractContext.scale(-1, 1)
+    extractContext.translate(-160,0)
+    extractContext.drawImage(myVideo, 0, 0, 160, 120)
+    extractContext.restore()
+
+    hiddenCamContext.save()
+    hiddenCamContext.scale(-1, 1)
+    hiddenCamContext.translate(-hiddenCamVideo.width,0)
+    hiddenCamContext.drawImage(myVideo, 0, 0, hiddenCamVideo.width, hiddenCamVideo.height)
+    hiddenCamContext.restore()
+    /*
     let src = new cv.Mat(height, width, cv.CV_8UC4);
     let cap = new cv.VideoCapture(myVideo);
     cap.read(src);
     cv.imshow(extractColorVideo,src);
-    src.delete()
+    src.delete()*/
+    //extractContext.restore()
+    //let imgData = extractContext.getImageData(0, 0, 160, 120);
+    //let src = cv.matFromImageData(imgData)      
   if(isCamWrite2) {
-    let imgData = extractContext.getImageData(0, 0, 160, 120);
+    let imgData = hiddenCamContext.getImageData(0, 0, hiddenCamVideo.width, hiddenCamVideo.height);
+    //let imgData = extractContext.getImageData(0, 0, 160, 120);
     let src = cv.matFromImageData(imgData);
 
     let dst = new cv.Mat();
@@ -139,9 +162,9 @@ function extractDraw( video, context, width, height ) {
       let rect = cv.boundingRect(ans);
       cam_mouse.pos.x = (rect.x)
       cam_mouse.pos.y = (rect.y)
-      if(cam_mouse.pos_prev) {
-        console.log("!@#")
-        socket.emit('drawLine', {line: [cam_mouse.pos, cam_mouse.pos_prev], roomId:ROOM_ID, size:[width, height]})
+      if(cam_mouse.pos_prev && cam_mouse.click) {
+        socket.emit('drawLine', {line: [cam_mouse.pos, cam_mouse.pos_prev], roomId:ROOM_ID, size:[hiddenCamVideo.width, hiddenCamVideo.height]})
+        //socket.emit('drawLine', {line: [cam_mouse.pos, cam_mouse.pos_prev], roomId:ROOM_ID, size:[width, height]})
       }
       cam_mouse.pos_prev = {x: cam_mouse.pos.x, y: cam_mouse.pos.y}
       ans.delete()
@@ -491,9 +514,11 @@ function draw( video, context, width, height ) {
           canvas.width = width
           //canvas.height = height
           canvas.height = height
+          hiddenCamVideo.width = width
+          hiddenCamVideo.height = height
         }
       }
-      setTimeout(draw, 50, video, context, width, height)  //20프레임
+      //setTimeout(draw, 50, video, context, width, height)  //20프레임
     }
     else{
       socket.emit('displayReset_server', ROOM_ID, user_id)
@@ -515,9 +540,11 @@ function draw( video, context, width, height ) {
           otherDraw(context, prevImage)
           canvas.width = width
           canvas.height = height
+          hiddenCamVideo.width = width
+          hiddenCamVideo.height = height
         }
       }
-      setTimeout(draw, 50, video, context, width, height)  //20프레임
+      //setTimeout(draw, 50, video, context, width, height)  //20프레임
     }
     else{
       displayCall.close()
@@ -709,7 +736,9 @@ document.addEventListener("keydown", (e) => {
     drawPause = !drawPause
     socket.emit('drawPause_script',drawPause, ROOM_ID)
   }
-   
+  if(e.key == '`') {
+    cam_mouse.click = true
+  }
   if(e.key == '/' && !isNoCamUser) {
     //localStream.getTracks().forEach(t => localStream.removeTrack(t))
     if(isCam) {
@@ -757,11 +786,9 @@ document.addEventListener("keydown", (e) => {
     console.log(isCamWrite)
     console.log(isCamWrite2)
   }
-  if(e.key == 'Home' && !isNoCamUser) {
+  if(e.key == 'Home' && !isNoCamUser && isCam) {
     if(!isCamWrite) {
       alert("캠에서 펜으로 인식할 부분을 클릭해주세요");
-      myVideo.width = 160
-      myVideo.height = 120
       myVideo.style.visibility = 'hidden'
       extractColorVideo.width = 160
       extractColorVideo.height = 120
@@ -771,8 +798,16 @@ document.addEventListener("keydown", (e) => {
       myVideo.style.visibility = 'visible'
       extractColorVideo.width = 0
       extractColorVideo.height = 0
+      myVideo.width = 160
+      myVideo.height = 120
       isCamWrite = false
     }
+  }
+})
+
+document.addEventListener("keyup", (e) => {
+  if(e.key == '`') {  
+    cam_mouse.click = false
   }
 })
 
@@ -798,7 +833,9 @@ document.addEventListener("DOMContentLoaded", ()=> {
   var socket = io.connect()
   canvas.width = parseInt(width*rX)
   canvas.height = parseInt(height-200)
-
+  hiddenCamVideo.width = canvas.width
+  hiddenCamVideo.height = canvas.height
+  
   canvas.onmousedown = (e) => {mouse.click = true}
   canvas.onmouseup = (e) => {mouse.click = false}
 
@@ -811,10 +848,6 @@ document.addEventListener("DOMContentLoaded", ()=> {
   socket.on('drawLine', data => {
     var line = data.line
     var size = data.size
-    console.log(line[0].x * (width/size[0]))
-    console.log(line[0].y * (height/size[1]))
-    console.log(line[1].x * (width/size[0]))
-    console.log(line[1].y * (height/size[1]))
     if(ROOM_ID == data.roomId) {
     context.beginPath()
     context.lineWidth = 2
@@ -829,7 +862,10 @@ document.addEventListener("DOMContentLoaded", ()=> {
       offDisplay = !offDisplay  //화면공유 껐을 때 알아차리고 루프 빠져나오기 위함
       mainLoop()
     }
-    else setTimeout(outerLoop, 50)
+    else {
+      draw(displayVideo, context, 1024, 768)
+      setTimeout(outerLoop, 50)
+    }
   }
   function mainLoop() {
     if(isDisplaying && !drawPause) {
@@ -846,6 +882,8 @@ document.addEventListener("DOMContentLoaded", ()=> {
       canvas.width = width
       //canvas.height = height
       canvas.height = height
+      hiddenCamVideo.width = width
+      hiddenCamVideo.height = height
     }
     if(isDisplaying && !drawPause) {  //방송중이고 방송 일시정지가 아니면
       socket.emit('clearWhiteBoard', ROOM_ID)
