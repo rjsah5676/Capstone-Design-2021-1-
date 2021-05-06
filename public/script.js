@@ -280,7 +280,8 @@ function getNewUser()
         })
       }
       peers[call.peer] = call
-      socket.emit('getStream_server', user_id, call.peer, ROOM_ID)
+      if(localStream.flag != 2)
+        socket.emit('getStream_server', user_id, call.peer, ROOM_ID)
     })
     /*
     call.on('close', () => {
@@ -302,9 +303,18 @@ function connectionLoop(userId, userName) //피어 연결이 제대로 될 때 �
   }
 }
 
+function firstConnectSocketCall(userId)
+{
+  socket.emit('isDisplaying_script', isDisplaying, ROOM_ID)
+  socket.emit('drawPause_script',drawPause, ROOM_ID)
+  socket.emit('newDisplayConnect_server', ROOM_ID, user_id, userId)
+  if(prevImage != undefined && prevImage != null && drawPause)
+    socket.emit('imageSend', ROOM_ID, user_id, prevImage)
+}
+
 function connectToNewUser(userId, userName) { //기존 유저 입장에서 새로운 유저가 들어왔을 때
   localStream.flag = 2
-  if(isDisplayHost) firstConnectSocketCall() //화면공유중일때 새로 들어온 유저가 화면공유 보도록
+  if(isDisplayHost) firstConnectSocketCall(userId) //화면공유중일때 새로 들어온 유저가 화면공유 보도록
 
   //if(!isCam)  캠 끈거 들어오자마자 받아들이는 건데 일단 보류
     //socket.emit('streamPlay_server', user_id,ROOM_ID)
@@ -400,25 +410,28 @@ function connectionDisplayLoop(userId)
   }
 }
 
+var displayVideo = document.createElement('video')
+
 //---화면 공유---
 function connectToDisplay(userId) {
     var displayBox = document.getElementById('displayBox')
-    var video = document.createElement('video')
-    video.id = 'userDisplay'
+    //var video = document.createElement('video')
+    displayVideo.id = 'userDisplay'
     const call = myPeer.call(userId, localStream)
     displayCall = call
     call.on('stream', stream => {
-      isDisplaying = true
+      //isDisplaying = true
       localDisplay = stream
-      displayBox.append(video)
+      displayBox.append(displayVideo)
       isDisplayCall[userId] = false
-      video.srcObject = stream
-      video.addEventListener('loadedmetadata', () => {
-        video.play()
+      displayVideo.srcObject = stream
+      displayVideo.addEventListener('loadedmetadata', () => {
+        displayVideo.play()
       })
 
-      video.addEventListener('play', function() {
-        draw( this, context, 1024, 768 );
+      displayVideo.addEventListener('play', function() {
+        isDisplaying = true
+        //draw( this, context, 1024, 768 );
       }, false )
     })
     call.on('error', err => {
@@ -427,26 +440,27 @@ function connectToDisplay(userId) {
 
 function displayPlay() {
   var displayBox = document.getElementById('displayBox')
-  var video = document.createElement('video')
-  video.id = 'userDisplay'
-  displayBox.append(video)
+  //var video = document.createElement('video')
+  displayVideo.id = 'userDisplay'
+  displayBox.append(displayVideo)
   navigator.mediaDevices.getDisplayMedia({
     video: true,
     audio: false,
   }).then(stream => {
     localStream.flag = 2
     localDisplay = stream
-    isDisplaying= !isDisplaying
+    //isDisplaying= !isDisplaying
     isDisplayHost= true
     //socket.emit('isDisplaying_script', isDisplaying, ROOM_ID)
-    video.srcObject = stream
-    video.play();
+    displayVideo.srcObject = stream
+    displayVideo.play();
     socket.emit('displayConnect_server', ROOM_ID, user_id)
   }).catch(error => {
     console.log(error)
   });
-  video.addEventListener('play', function() {
-    draw( this, context, 1024, 768 );
+  displayVideo.addEventListener('play', function() {
+    isDisplaying = true
+    //draw( this, context, 1024, 768 );
   }, false )
 }
 
@@ -631,18 +645,19 @@ socket.on('sendStream_script', (userId_caller, userId_callee, roomId, isCam) => 
   if(user_id == userId_caller && roomId == ROOM_ID) {
     const video = document.getElementById(userId_callee + '!video')
     const videoBackground = document.getElementById(userId_callee + '!videoBackground')
-   if(!isCam) {
-    videoBackground.style.width = '160px'
-    videoBackground.style.height = '120px'
-    video.width = 0
-    video.height = 0
-   }
-   else {
-    videoBackground.style.width = '0px'
-    videoBackground.style.height = '0px'
-    video.width = 160
-    video.height = 120
-   }
+    console.log(videoBackground)
+    if(!isCam) {
+      videoBackground.style.width = '160px'
+      videoBackground.style.height = '120px'
+      video.width = 0
+      video.height = 0
+    }
+    else {
+      videoBackground.style.width = '0px'
+      videoBackground.style.height = '0px'
+      video.width = 160
+      video.height = 120
+    }
   }
 })
 
@@ -795,6 +810,9 @@ document.addEventListener("DOMContentLoaded", ()=> {
     else setTimeout(outerLoop, 50)
   }
   function mainLoop() {
+    if(isDisplaying && !drawPause) {
+      draw(displayVideo, context, 1024, 768)
+    }
     width = parseInt(window.innerWidth*rX)
     height = parseInt(window.innerHeight-200)
     if(canvas.width != width || canvas.height != height) {  //웹 페이지 크기가 변할 때
