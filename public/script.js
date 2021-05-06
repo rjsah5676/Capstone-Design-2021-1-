@@ -1,7 +1,6 @@
 /*
   화면공유 필기 중에 들어오는 유저는 필기 확인 불가 버그(화면 크기 바꾸면 다시 돌아옴)
   화면공유 했을 때 안넘어가는 경우가있음.
-  캠 끄기 켜기 기능 최적화가 필요할듯
   모션 인식 연동
 */
 var user_name = prompt('대화명을 입력해주세요.', '')
@@ -369,6 +368,17 @@ function drawChatMessage(data){
   return wrap; 
 }
 
+document.querySelector('#chatInput').addEventListener('keyup', (e)=>{
+  if (e.keyCode === 13) {
+    var message = chatInput.value; 
+  if(!message){
+    return false; 
+  }
+  socket.emit('sendMessage', { message, ROOM_ID });
+  chatInput.value = '';
+  }  
+});
+
 sendButton.addEventListener('click', function(){ 
   var message = chatInput.value; 
   if(!message){
@@ -608,6 +618,7 @@ socket.on('updateMessage', function(data){
   else if(ROOM_ID==data.ROOM_ID){ //사용자의 ROOM_ID와 화상 회의방의 ROOM_ID가 같은가??
     var chatMessageEl = drawChatMessage(data); 
     chatWindow.appendChild(chatMessageEl); 
+    chatWindow.scrollTop=chatWindow.scrollHeight;
   } 
 }); 
 
