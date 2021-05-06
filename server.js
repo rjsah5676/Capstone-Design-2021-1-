@@ -31,7 +31,7 @@ app.get('/newroom', (req, res) => {
 })
 
 app.get('/:room', (req, res) => {
-  res.render('index', { roomId: req.params.room })
+  res.render('room', { roomId: req.params.room })
 })
 app.get('/views/gesture', (req, res) => {
   res.render('test')
