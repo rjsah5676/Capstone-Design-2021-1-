@@ -55,6 +55,11 @@ var localStream
 var localDisplay
 var displayCall
 
+hiddenCamVideo.width = 1024
+hiddenCamVideo.height = 768
+
+var thrh = 200 //threshold
+
 var rX = 0.79872  //rX, rY는 최대한 마우스 에임에 맞는 필기를 위해 곱해주는 용도
 var rY = 0.8091
 
@@ -73,7 +78,7 @@ var isCamWrite2 = false
 extractColorVideo.addEventListener('click', (event) => { 
   const test = document.getElementById('output');
   //var ctx = test.getContext('2d');
-  var imageData = extractContext.getImageData(0, 0, 160, 120);
+  var imageData = extractContext.getImageData(0, 0, 1024, 768);
   imageData.getRGBA = function(i,j,k){
     return this.data[this.width*4*j+4*i+k];
   };
@@ -89,16 +94,27 @@ extractColorVideo.addEventListener('click', (event) => {
   //ctest.fillRect(0,0,50,50);
   //fun_mask();
   isCamWrite2 = true
+  myVideo.style.visibility = 'visible'
+  extractColorVideo.width = 0
+  extractColorVideo.height = 0
+  myVideo.width = 160
+  myVideo.height = 120
+
 });
 
+var thr = 15;
+var extractWidth = 1024
+var extractHeight = 768
 function extractDraw( video, context, width, height ) {
   //const test = document.getElementById('output');
   if(isCamWrite) {
-    extractContext.save()
-    extractContext.scale(-1, 1)
-    extractContext.translate(-160,0)
-    extractContext.drawImage(myVideo, 0, 0, 160, 120)
-    extractContext.restore()
+    if(!isCamWrite2) {
+      extractContext.save()
+      extractContext.scale(-1, 1)
+      extractContext.translate(-extractWidth,0)
+      extractContext.drawImage(myVideo, 0, 0, extractWidth, extractHeight)
+      extractContext.restore()
+    }
 
     hiddenCamContext.save()
     hiddenCamContext.scale(-1, 1)
@@ -120,7 +136,6 @@ function extractDraw( video, context, width, height ) {
     let src = cv.matFromImageData(imgData);
 
     let dst = new cv.Mat();
-    var thr = 15;
     let low = new cv.Mat(src.rows, src.cols, src.type(), [R-thr, G-thr, B-thr, 0]);
     let high = new cv.Mat(src.rows, src.cols, src.type(), [R+thr, G+thr, B+thr, 255]);
   
@@ -162,6 +177,7 @@ function extractDraw( video, context, width, height ) {
       let rect = cv.boundingRect(ans);
       cam_mouse.pos.x = (rect.x)
       cam_mouse.pos.y = (rect.y)
+
       if(cam_mouse.pos_prev && cam_mouse.click) {
         socket.emit('drawLine', {line: [cam_mouse.pos, cam_mouse.pos_prev], roomId:ROOM_ID, size:[hiddenCamVideo.width, hiddenCamVideo.height]})
         //socket.emit('drawLine', {line: [cam_mouse.pos, cam_mouse.pos_prev], roomId:ROOM_ID, size:[width, height]})
@@ -514,8 +530,7 @@ function draw( video, context, width, height ) {
           canvas.width = width
           //canvas.height = height
           canvas.height = height
-          hiddenCamVideo.width = width
-          hiddenCamVideo.height = height
+
         }
       }
       //setTimeout(draw, 50, video, context, width, height)  //20프레임
@@ -783,26 +798,27 @@ document.addEventListener("keydown", (e) => {
     isMute = !isMute
   }*/
   if(e.key == 'Insert') {  //디버그용
-    console.log(isCamWrite)
-    console.log(isCamWrite2)
+    console.log(thr)
   }
   if(e.key == 'Home' && !isNoCamUser && isCam) {
     if(!isCamWrite) {
       alert("캠에서 펜으로 인식할 부분을 클릭해주세요");
       myVideo.style.visibility = 'hidden'
-      extractColorVideo.width = 160
-      extractColorVideo.height = 120
+      extractColorVideo.width = 1024
+      extractColorVideo.height = 768
       isCamWrite = true
     }
     else {
-      myVideo.style.visibility = 'visible'
+      alert("캠 필기 기능 종료")
       extractColorVideo.width = 0
-      extractColorVideo.height = 0
-      myVideo.width = 160
-      myVideo.height = 120
+      extractColorVideo.height = false
+      myVideo.style.visibility = 'visible'
       isCamWrite = false
+      isCamWrite2 = false
     }
   }
+  if(e.key === 'PageUp') thr += 1
+  if(e.key === 'PageDown') thr -= 1
 })
 
 document.addEventListener("keyup", (e) => {
@@ -833,8 +849,7 @@ document.addEventListener("DOMContentLoaded", ()=> {
   var socket = io.connect()
   canvas.width = parseInt(width*rX)
   canvas.height = parseInt(height-200)
-  hiddenCamVideo.width = canvas.width
-  hiddenCamVideo.height = canvas.height
+
   
   canvas.onmousedown = (e) => {mouse.click = true}
   canvas.onmouseup = (e) => {mouse.click = false}
@@ -882,8 +897,7 @@ document.addEventListener("DOMContentLoaded", ()=> {
       canvas.width = width
       //canvas.height = height
       canvas.height = height
-      hiddenCamVideo.width = width
-      hiddenCamVideo.height = height
+
     }
     if(isDisplaying && !drawPause) {  //방송중이고 방송 일시정지가 아니면
       socket.emit('clearWhiteBoard', ROOM_ID)
@@ -895,7 +909,7 @@ document.addEventListener("DOMContentLoaded", ()=> {
         mouse.move = false
       }
       mouse.pos_prev = {x: mouse.pos.x, y: mouse.pos.y}
-    setTimeout(mainLoop, 25)  //최종은 25로
+    setTimeout(mainLoop, 20)  //최종은 20
     }
   }
   socket.emit('reDrawing', ROOM_ID)
