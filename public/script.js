@@ -21,6 +21,12 @@ const myVideoBackground = document.createElement('videoBackground')
 const extractColorVideo = document.createElement('canvas')
 const hiddenCamVideo = document.createElement('canvas')
 const extractCamArea = document.getElementById('extractCamArea')
+const hiddenVideo = document.getElementById('hiddenVideo')
+
+hiddenVideo.style.visibility = 'hidden'
+hiddenVideo.width = 1024
+hiddenVideo.height = 768
+hiddenVideo.muted = true
 hiddenCamVideo.style.visibility = 'hidden'
 extractCamArea.style.width = 0
 extractCamArea.style.height = 0
@@ -111,15 +117,15 @@ function extractDraw( video, context, width, height ) {
     if(!isCamWrite2) {
       extractContext.save()
       extractContext.scale(-1, 1)
-      extractContext.translate(-extractWidth,0)
-      extractContext.drawImage(myVideo, 0, 0, extractWidth, extractHeight)
+      extractContext.translate(-hiddenCamVideo.width,0)
+      extractContext.drawImage(hiddenVideo, 0, 0, hiddenCamVideo.width, hiddenCamVideo.height)
       extractContext.restore()
     }
 
     hiddenCamContext.save()
     hiddenCamContext.scale(-1, 1)
     hiddenCamContext.translate(-hiddenCamVideo.width,0)
-    hiddenCamContext.drawImage(myVideo, 0, 0, hiddenCamVideo.width, hiddenCamVideo.height)
+    hiddenCamContext.drawImage(hiddenVideo, 0, 0, hiddenCamVideo.width, hiddenCamVideo.height)
     hiddenCamContext.restore()
     /*
     let src = new cv.Mat(height, width, cv.CV_8UC4);
@@ -252,7 +258,12 @@ function userJoin()
   userBox.appendChild(extractColorVideo)
   userBox.appendChild(myVideo)
   addVideoStream(myVideo, localStream, userBox)
-
+  hiddenVideo.srcObject = localStream
+  hiddenVideo.addEventListener('loadedmetadata', () => {
+    hiddenVideo.play()
+    console.log("Camera is ready")
+    탄지로()
+  })
   getNewUser()
 
   socket.on('user-connected', (userId, userName) => {
@@ -916,3 +927,51 @@ document.addEventListener("DOMContentLoaded", ()=> {
   mainLoop()
   //---캔버스 코드 끝---
 })
+
+
+//=제스처
+const config = {
+  video: { width: 1024, height: 768, fps: 30 }
+};
+
+async function 탄지로() {
+
+  const video = document.getElementById('hiddenVideo')
+
+  const knownGestures = [
+    fp.Gestures.VictoryGesture,
+    fp.Gestures.ThumbsUpGesture
+  ];
+  const GE = new fp.GestureEstimator(knownGestures);
+
+  // load handpose model
+  const model = await handpose.load();
+  console.log("Handpose model loaded");
+
+  // main estimation loop
+  const estimateHands = async () => {
+
+    const predictions = await model.estimateHands(video, true);
+
+    for(let i = 0; i < predictions.length; i++) {
+
+      const est = GE.estimate(predictions[i].landmarks, 7.5);
+
+      if(est.gestures.length > 0) {
+
+        let result = est.gestures.reduce((p, c) => { 
+          return (p.confidence > c.confidence) ? p : c;
+        });
+
+        console.log(result.name);
+      }
+    }
+
+    // ...and so on
+    setTimeout(() => { estimateHands(); }, 1000 / config.video.fps);
+  };
+
+  estimateHands();
+  console.log("Starting predictions");
+}
+//-제스처
