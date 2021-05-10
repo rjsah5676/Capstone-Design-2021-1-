@@ -64,13 +64,17 @@ videoBackground {
 }
 
 .whiteboard{
+    position: absolute;
+    z-index: 200;
     margin-left:5px;
     width: 79.8%;
     border-radius: 10px;
-    background-color: #ffffff;
     padding:0;
+    background-color: #ffffff;
 }
-
+#test {
+    position: relative
+}
 .chatarea{
     overflow:auto;
     white-space: normal;
@@ -112,8 +116,9 @@ videoBackground {
     margin-right: auto;
 }
 #userDisplay {
-    width: 0px;
-    height: 0px;
+    transform: rotateY(0deg);
+    -webkit-transform:rotateY(0deg);
+    -moz-transform:rotateY(0deg);
 }
 #info {
     color: black;
@@ -150,7 +155,6 @@ videoBackground {
 
 .anotherMsg > .msg {
     background-color: #f1f0f0;
-
 }
 
 .myMsg > .msg {
