@@ -423,19 +423,33 @@ function addVideoStream(video, stream, userBox) {
 
 function drawChatMessage(data){
   var wrap = document.createElement('div'); 
-  wrap.className="anotherMsg"
+  if(data.user_id==user_id){
+    wrap.className="myMsg"
+  }
+  else{
+    wrap.className="anotherMsg"
+  }
   var message = document.createElement('span');
   message.className="msg";
-  var name = document.createElement('span'); 
-  name.className="anotherName";
 
-  name.innerText = data.name + ': '; 
-  message.innerText = data.message; 
+  
+  var name = document.createElement('span'); 
+
+  if(data.user_id!=user_id){
+    name.className="anotherName";
+    name.innerText = data.name+":"; 
+  }
+  else{
+    name.className="myName";
+    name.innerText = data.name+"(나):"; 
+  }
+
   name.classList.add('output__user__name'); 
+  wrap.appendChild(name); 
+  message.innerText = data.message; 
   message.classList.add('output__user__message'); 
   wrap.classList.add('output__user'); 
   wrap.dataset.id = socket.id; 
-  wrap.appendChild(name); 
   wrap.appendChild(message); 
   return wrap; 
 }
@@ -446,7 +460,7 @@ document.querySelector('#chatInput').addEventListener('keyup', (e)=>{
   if(!message){
     return false; 
   }
-  socket.emit('sendMessage', { message, ROOM_ID });
+  socket.emit('sendMessage', { message, ROOM_ID, user_id });
   chatInput.value = '';
   }  
 });
@@ -456,7 +470,7 @@ sendButton.addEventListener('click', function(){
   if(!message){
     return false; 
   }
-  socket.emit('sendMessage', { message, ROOM_ID });
+  socket.emit('sendMessage', { message, ROOM_ID, user_id });
   chatInput.value = '';
 });
 
