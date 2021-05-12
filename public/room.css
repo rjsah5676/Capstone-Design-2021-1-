@@ -32,6 +32,10 @@ video {
     border-radius: 0px 0px 10px 10px;
 }
 
+videoBackground {
+    border-radius: 0px 0px 10px 10px;
+}
+
 userBox {
     width: 160px;
     height: 160px;
@@ -46,7 +50,6 @@ videoUserName {
 }
 
 videoBackground {
-    border-radius: 0px 0px 10px 10px;
     background-color: black;
     display: block;
 }
@@ -55,12 +58,20 @@ videoBackground {
     width:0px;
     height:0px;
 }
+#buttonArea{
+    height: 35px;
+    width:79.8%;
+    background-color: #ffffff;
+    box-shadow: 0px 0px 7px black;
+    border-radius: 10px;
+    margin: 5px;
 
+}
 #videoarea{
     box-shadow: 0px 0px 7px black;
     margin:5px;
     width:79.8%;
-    height: 180px;
+    height: 140px;
     border-radius: 10px;
     background-color: #ffffff;
 }
@@ -72,8 +83,8 @@ videoBackground {
     margin-left:5px;
     width: 79.8%;
     border-radius: 10px;
-    background-color: #ffffff;
     padding:0;
+    background-color: #ffffff;
 }
 #test {
     position: relative
@@ -121,6 +132,8 @@ videoBackground {
     margin-right: auto;
 }
 #userDisplay {
+    border-radius: 10px;
+    margin-left: 5px;
     transform: rotateY(0deg);
     -webkit-transform:rotateY(0deg);
     -moz-transform:rotateY(0deg);
@@ -160,7 +173,6 @@ videoBackground {
 
 .anotherMsg > .msg {
     background-color: #f1f0f0;
-
 }
 
 .myMsg > .msg {
@@ -172,13 +184,11 @@ videoBackground {
     font-size: 12px;
     display: block;
 }
-
 .myName {
     font-size: 12px;
     display: block;
     margin-right:12px;
 }
-
 #chatInput {
     margin-left:5px;
     border-radius: 5px;
