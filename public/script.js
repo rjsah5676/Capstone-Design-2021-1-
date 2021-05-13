@@ -66,6 +66,7 @@ var localStream
 var localDisplay
 var displayCall
 var gesturechk = false
+var chkfirst = 0
 
 
 hiddenCamVideo.width = 1024
@@ -193,12 +194,12 @@ function extractDraw() {
       yy += (cv.boundingRect(temp).y)/sum*cntareas[realareas[i]]*cntareas[realareas[i]];
       temp.delete();
     }
+    cursor_context.clearRect(0,0, width, height)
     if(xx !=0 && yy !=0){
       cam_mouse.pos.x = xx
       cam_mouse.pos.y = yy
       cursor_context.fillStyle = "red"
-      if(cam_mouse.pos_prev)
-        cursor_context.clearRect(0,0, width, height)
+      
       cursor_context.fillRect(xx * (width/hiddenCamVideo.width), yy *  (height/hiddenCamVideo.height), 3, 3)
       if(cam_mouse.pos_prev && cam_mouse.click) {
         socket.emit('drawLine', {line: [cam_mouse.pos, cam_mouse.pos_prev], roomId:ROOM_ID, size:[hiddenCamVideo.width, hiddenCamVideo.height]})
@@ -852,6 +853,7 @@ document.addEventListener("keydown", (e) => {
 document.addEventListener("keyup", (e) => {
   if(e.key == '`') {  
     cam_mouse.click = false
+    chkfirst = 0
   }
 })
 
@@ -894,11 +896,16 @@ document.addEventListener("DOMContentLoaded", ()=> {
     var line = data.line
     var size = data.size
     if(ROOM_ID == data.roomId) {
-      context.beginPath()
-      context.lineWidth = 2
-      context.moveTo(line[0].x * (width/size[0]), line[0].y * (height/size[1]))
-      context.lineTo(line[1].x * (width/size[0]), line[1].y * (height/size[1]))
-      context.stroke()
+      if(chkfirst < 2) {
+        chkfirst++
+      }
+      else{
+        context.beginPath()
+        context.lineWidth = 2
+        context.moveTo(line[0].x * (width/size[0]), line[0].y * (height/size[1]))
+        context.lineTo(line[1].x * (width/size[0]), line[1].y * (height/size[1]))
+        context.stroke()
+      }
     }
   })
 
