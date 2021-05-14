@@ -19,7 +19,7 @@ const nocamVideo = document.getElementById('nocam__video')
 const myVideo = document.createElement('video')
 const myDisplay = document.createElement('video')
 const myVideoBackground = document.createElement('videoBackground')
-const extractColorVideo = document.createElement('canvas')
+const extractColorVideo = document.getElementById('extractCam')
 const hiddenCamVideo = document.createElement('canvas')
 const extractCamArea = document.getElementById('extractCamArea')
 const hiddenVideo = document.getElementById('hiddenVideo')
@@ -108,12 +108,7 @@ extractColorVideo.addEventListener('click', (event) => {
   //ctest.fillRect(0,0,50,50);
   //fun_mask();
   isCamWrite2 = true
-  myVideo.style.visibility = 'visible'
-  extractColorVideo.width = 0
-  extractColorVideo.height = 0
-  myVideo.width = 160
-  myVideo.height = 120
-
+  extractColorVideo.style.visibility = 'hidden'
 });
 
 var thr = 15;
@@ -126,8 +121,8 @@ function extractDraw() {
     if(!isCamWrite2) {
       extractContext.save()
       extractContext.scale(-1, 1)
-      extractContext.translate(-hiddenCamVideo.width,0)
-      extractContext.drawImage(hiddenVideo, 0, 0, hiddenCamVideo.width, hiddenCamVideo.height)
+      extractContext.translate(-extractColorVideo.width,0)
+      extractContext.drawImage(hiddenVideo, 0, 0, extractColorVideo.width, extractColorVideo.height)
       extractContext.restore()
     }
 
@@ -270,7 +265,7 @@ function userJoin()
   bold.appendChild(videoUserNameText)
   userBox.appendChild(videoUserName)
   userBox.appendChild(myVideoBackground)
-  userBox.appendChild(extractColorVideo)
+  //userBox.appendChild(extractColorVideo)
   userBox.appendChild(myVideo)
   addVideoStream(myVideo, localStream, userBox)
   hiddenVideo.srcObject = localStream
@@ -532,17 +527,16 @@ camWriteButton.addEventListener('click', () => {
   else {
     if(!isCamWrite) {
       alert("캠에서 펜으로 인식할 부분을 클릭해주세요");
-      myVideo.style.visibility = 'hidden'
-      extractColorVideo.width = 1024
-      extractColorVideo.height = 768
+      extractColorVideo.style.visibility = 'visible'
+      extractColorVideo.width = canvas.width
+      extractColorVideo.height = canvas.height
       isCamWrite = true
       camWriteButton.innerText = '캠 필기 끄기'
     }
     else {
       alert("캠 필기 기능 종료")
-      extractColorVideo.width = 0
-      extractColorVideo.height = false
-      myVideo.style.visibility = 'visible'
+      cursor_context.clearRect(0,0, width, height)
+      extractColorVideo.style.visibility = 'hidden'
       isCamWrite = false
       isCamWrite2 = false
       camWriteButton.innerText = '캠 필기 켜기'
@@ -824,17 +818,16 @@ document.addEventListener("keydown", (e) => {
   if(e.key == 'Home' && !isNoCamUser && isCam) {
     if(!isCamWrite) {
       alert("캠에서 펜으로 인식할 부분을 클릭해주세요");
-      myVideo.style.visibility = 'hidden'
-      extractColorVideo.width = 1024
-      extractColorVideo.height = 768
+      extractColorVideo.style.visibility = 'visible'
+      extractColorVideo.width = canvas.width
+      extractColorVideo.height = canvas.height
       isCamWrite = true
       camWriteButton.innerText = '캠 필기 끄기'
     }
     else {
       alert("캠 필기 기능 종료")
-      extractColorVideo.width = 0
-      extractColorVideo.height = false
-      myVideo.style.visibility = 'visible'
+      cursor_context.clearRect(0,0, width, height)
+      extractColorVideo.style.visibility = 'hidden'
       isCamWrite = false
       isCamWrite2 = false
       camWriteButton.innerText = '캠 필기 켜기'
@@ -946,6 +939,9 @@ document.addEventListener("DOMContentLoaded", ()=> {
 
       cursor_canvas.width = width
       cursor_canvas.height = height
+
+      extractColorVideo.width = width
+      extractColorVideo.height = height
     }
 
     if(mouse.click && mouse.move && mouse.pos_prev) {
