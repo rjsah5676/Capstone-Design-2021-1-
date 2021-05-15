@@ -73,15 +73,6 @@ io.on('connection', socket => {
   socket.on('sendStream_server', (userId_caller, userId_callee, roomId, isCam) => {
     io.sockets.in(roomId).emit('sendStream_script', userId_caller, userId_callee, roomId, isCam)
   })
-  socket.on('imageSend', (roomId, userId, image) => { //화면 공유용
-    io.sockets.in(roomId).emit('drawImage', roomId, userId, image)
-  })
-  socket.on('drawPause_script', (tf, roomId) => {
-    io.sockets.in(roomId).emit('drawPause_server', tf, roomId)
-  })
-  socket.on('isDisplaying_script', (tf, roomId) => {
-    io.sockets.in(roomId).emit('isDisplaying_server', tf, roomId)
-  })
   socket.on('sendMessage', function(data){ 
     data.name = socket.userName;
     io.sockets.emit('updateMessage', data); 
@@ -97,20 +88,26 @@ io.on('connection', socket => {
   socket.on('streamPlay_server', (userId, roomId, isCam) => {
     io.sockets.in(roomId).emit('streamPlay_script', userId, roomId, isCam)
   })
-  socket.on('muteRequest_server', (userId, roomId, isMute) => {
+  socket.on('muteRequest_server', async(userId, roomId, isMute) => {
     io.sockets.in(roomId).emit('muteRequest_script', userId, roomId, isMute)
+    const muteUser = await User.findOne({userId: userId}, null, {})
+    muteUser.isMute = isMute
+    muteUser.save()
   })
   socket.on('displayReset_server', (roomId, userId) => {
     io.sockets.in(roomId).emit('displayReset_script', roomId, userId)
   })
-  socket.on('getName', async (userId) =>{ //유저 이름 달아줌
+  socket.on('getName', async (userId, roomId) =>{ //유저 이름 달아줌
     users = await User.findOne({userId:userId}, null, {})
     if(users.isHost)
-      socket.emit('setName', userId, users.userName+'(호스트)') //호스트 문구 처리는 나중에 더 이쁘게
+      io.sockets.in(roomId).emit('setName', userId, users.userName+'(호스트)') //호스트 문구 처리는 나중에 더 이쁘게
     else
-      socket.emit('setName', userId, users.userName)
+      io.sockets.in(roomId).emit('setName', userId, users.userName)
   })
-
+  socket.on('getMute', async(muteUserId, userId, roomId) => {
+    users = await User.findOne({userId:muteUserId}, null, {})
+    io.sockets.in(roomId).emit('setMute', users.isMute, muteUserId, userId)
+  })
   socket.on('pause_server', (userId, isPause) => {
     io.emit('pause_script', userId, isPause)
   })

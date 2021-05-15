@@ -24,6 +24,36 @@ const hiddenCamVideo = document.createElement('canvas')
 const extractCamArea = document.getElementById('extractCamArea')
 const hiddenVideo = document.getElementById('hiddenVideo')
 
+var canvas = document.getElementById(ROOM_ID)
+var cursor_canvas = document.getElementById('cursorWhiteboard')
+
+var context = canvas.getContext('2d')
+var cursor_context = cursor_canvas.getContext('2d')
+var extractContext = extractColorVideo.getContext('2d')
+var hiddenCamContext = hiddenCamVideo.getContext('2d')
+
+var user_id
+var isCamWrite = false
+var isDisplayHost = false
+var isPause = false
+var isDisplaying = false
+var isCam = true
+var isMute = false
+var isNoCamUser = false
+var isMuteUser = false
+var isFrist = true
+var isCall = {} //콜이 소실되는 경우 판단용
+var isDisplayCall = {}
+var isWriteLoop = true
+var offDisplay = false
+
+var prevImage
+var localStream
+var localDisplay
+var displayCall
+var gesturechk = false
+var chkfirst = 0
+
 hiddenVideo.style.visibility = 'hidden'
 hiddenVideo.width = 1024
 hiddenVideo.height = 768
@@ -38,41 +68,10 @@ myDisplay.id = 'display'
 myVideo.muted = true
 myVideo.width = 160
 myVideo.height = 120
-
-var user_id
-var isCamWrite = false
-var isDisplayHost = false
-var isPause = false
-var isDisplaying = false
-var drawPause = false
-var isCam = true
-var isMute = true
-var isNoCamUser = false
-var isMuteUser = false
-var isFrist = true
-var isCall = {} //콜이 소실되는 경우 판단용
-var isDisplayCall = {}
-var isWriteLoop = true
-var offDisplay = false
-var canvas = document.getElementById(ROOM_ID)
-var cursor_canvas = document.getElementById('cursorWhiteboard')
-
-var context = canvas.getContext('2d')
-var cursor_context = cursor_canvas.getContext('2d')
-var extractContext = extractColorVideo.getContext('2d')
-var hiddenCamContext = hiddenCamVideo.getContext('2d')
-var prevImage
-var localStream
-var localDisplay
-var displayCall
-var gesturechk = false
-var chkfirst = 0
-
-
 hiddenCamVideo.width = 1024
 hiddenCamVideo.height = 768
 
-var thrh = 200 //threshold
+navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.oGetUserMedia || navigator.msGetUserMedia;
 
 var rX = 0.79872  //rX, rY는 최대한 마우스 에임에 맞는 필기를 위해 곱해주는 용도
 var rY = 0.8091
@@ -279,7 +278,6 @@ function userJoin()
     connectionLoop(userId, userName)
   })
 }
-navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.oGetUserMedia || navigator.msGetUserMedia;
 
 navigator.mediaDevices.getUserMedia({
   video: true,
@@ -331,29 +329,22 @@ function getNewUser()
     videoBackground.style.height = '120px'
 
     call.on('stream', userVideoStream => {
+      socket.emit('getMute', call.peer, user_id, ROOM_ID)
       if(peers[call.peer] == undefined) {
         bold.id = call.peer
         video.id = call.peer+'!video'  // bold랑 차이두기위함
         userBox.id = call.peer + '!userBox'
         videoBackground.id = call.peer + '!videoBackground'
         addVideoStream(video, userVideoStream, userBox)  //원래 있던 유저들 보여주기
-        socket.emit('getName', call.peer)
+        socket.emit('getName', call.peer, ROOM_ID)
         videoUserName.appendChild(bold)
         bold.appendChild(videoUserNameText)
         userBox.appendChild(videoUserName)
         userBox.appendChild(videoBackground)
         userBox.appendChild(video)
       }
-      else if(localStream.flag != 2){
-        const nV = document.getElementById(call.peer+'!video')
-        nV.pause()
-        nV.srcObject = userVideoStream
-        nV.addEventListener('loadedmetadata', () => {
-          nV.play()
-        })
-      }
       peers[call.peer] = call
-      if(localStream.flag != 2)
+      if(localStream.flag != 2) //?
         socket.emit('getStream_server', user_id, call.peer, ROOM_ID)
     })
   })
@@ -375,7 +366,6 @@ function connectionLoop(userId, userName) //피어 연결이 제대로 될 때 �
 
 function firstConnectSocketCall(userId)
 {
-  socket.emit('isDisplaying_script', isDisplaying, ROOM_ID)
   socket.emit('newDisplayConnect_server', ROOM_ID, user_id, userId)
 }
 
@@ -474,6 +464,7 @@ sendButton.addEventListener('click', function(){
 });
 
 var camButton = document.getElementById('cam_button')
+var audioButton = document.getElementById('audio_button')
 var displayButton = document.getElementById('display_button')
 var camWriteButton = document.getElementById('camWrite_button')
 var gestureButton = document.getElementById('gesture_button')
@@ -501,6 +492,16 @@ camButton.addEventListener('click', () => {
     socket.emit('streamPlay_server', user_id,ROOM_ID,isCam)
     isCam = !isCam    
   }
+})
+
+audioButton.addEventListener('click', () => {
+  if(!isMuteUser) {
+    if(isMute) audioButton.innerText = '마이크 끄기'
+    else audioButton.innerText = '마이크 켜기'
+    isMute = !isMute
+    socket.emit('muteRequest_server', user_id,ROOM_ID,isMute)
+  }
+  else alert('마이크가 없습니다.')
 })
 
 displayButton.addEventListener('click', () => {
@@ -606,9 +607,7 @@ function displayPlay() {
   }).then(stream => {
     localStream.flag = 2
     localDisplay = stream
-    //isDisplaying= !isDisplaying
     isDisplayHost= true
-    //socket.emit('isDisplaying_script', isDisplaying, ROOM_ID)
     displayVideo.srcObject = stream
     displayVideo.play();
     socket.emit('displayConnect_server', ROOM_ID, user_id)
@@ -645,17 +644,11 @@ socket.on('displayReset_script', (roomId, userId) => {
   }
 })
 
-socket.on('drawImage', (roomId,userId,image)=>{
-  if(userId != user_id && roomId == ROOM_ID) {
-    prevImage = image
-    otherDraw(context, image)
-  }
-})
-
 socket.on('muteRequest_script', (userId, roomId, is_mute) => {
   if(roomId == ROOM_ID && userId != user_id) {
     const video = document.getElementById(userId + '!video')
-    video.muted = !is_mute
+    video.muted = is_mute
+    console.log(video.muted)
   }
 })
 
@@ -676,16 +669,6 @@ socket.on('streamPlay_script', (userId, roomId, isCam) => {
     video.height = 120
    }
   }
-})
-
-socket.on('drawPause_server', (tf,roomId) =>{
-  if(ROOM_ID==roomId)
-    drawPause = tf
-})
-
-socket.on('isDisplaying_server', (tf,roomId) =>{
-  if(ROOM_ID==roomId)
-    isDisplaying = tf
 })
 
 socket.on('pause_script', (userId, isPause) => {
@@ -758,8 +741,17 @@ socket.on('user-disconnected', userId => {
 })
 
 socket.on('setName', (userId, userName) => {
-  const bold = document.getElementById(userId)
-  bold.innerHTML = userName
+  if(user_id !== userId) {
+    const bold = document.getElementById(userId)
+    bold.innerHTML = userName
+  }
+})
+
+socket.on('setMute', (isMute, muteUserId, userId) => {
+  if(user_id === userId) {
+    const video = document.getElementById(muteUserId + '!video')
+    video.muted = isMute
+  }
 })
 
 document.addEventListener("keydown", (e) => {
@@ -773,10 +765,6 @@ document.addEventListener("keydown", (e) => {
   }
   if(e.key == 'Escape')  {//지우개
     socket.emit('clearWhiteBoard', ROOM_ID)
-    if(isDisplaying && drawPause) {
-      otherDraw(canvas.getContext('2d'), prevImage)
-      socket.emit('imageSend', ROOM_ID, user_id, prevImage)
-    }
   }
   if(e.key == '*' && !isDisplaying) {  //화면공유
     displayButton.innerText = '공유 종료'
@@ -805,12 +793,13 @@ document.addEventListener("keydown", (e) => {
     socket.emit('streamPlay_server', user_id,ROOM_ID,isCam)
     isCam = !isCam    
   }
-  /*
-  if(e.key == '+' && !isMuteUser) { 음소거 일단 보류
-    if(isMute)
-      socket.emit('muteRequest_server', user_id,ROOM_ID,isMute)
+  
+  if(e.key == '+' && !isMuteUser) {
+    if(isMute) audioButton.innerText = '마이크 끄기'
+    else audioButton.innerText = '마이크 켜기'
     isMute = !isMute
-  }*/
+    socket.emit('muteRequest_server', user_id,ROOM_ID,isMute)
+  }
   if(e.key == 'Insert') {  //디버그용
     console.log(thr)
     console.log(myPeer.connections)
