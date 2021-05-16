@@ -84,6 +84,23 @@ function printz(x)  //디버그용
   console.log(x)
 }
 
+/*
+if (window.Worker) {
+  // Worker 쓰레드를 생성(js파일를 로드)
+  let worker = new Worker("worker.js");
+  // 에러가 발생할 경우 발생!
+  worker.onerror = (e)=>{
+  console.log("error " + e.message);
+  }
+  // worker.js에서 postMessage의 값을 받는다.
+  worker.onmessage = (e)=>{
+  // 콘솔 출력
+  console.log(e.data);
+  }
+  worker.postMessage("hello")
+}
+*/
+
 var R,G,B;
 
 var isCamWrite2 = false
