@@ -8,7 +8,10 @@
 */
 var user_name = prompt('대화명을 입력해주세요.', '')
 
-while(user_name == null || user_name == undefined || user_name == '') user_name = prompt('대화명을 다시 입력해주세요.', '')
+while(user_name == null || user_name == undefined || user_name == '' || user_name.length > 6)  {
+  if(user_name.length > 6) user_name = prompt('대화명을 6자 이하로 설정해주세요.', '')
+  else user_name = prompt('대화명을 다시 입력해주세요.', '')
+}
 
 const socket = io('/')
 var chatWindow = document.getElementById('chatWindow'); 
@@ -35,7 +38,6 @@ var hiddenCamContext = hiddenCamVideo.getContext('2d')
 var user_id
 var isCamWrite = false
 var isDisplayHost = false
-var isPause = false
 var isDisplaying = false
 var isCam = true
 var isMute = false
@@ -561,7 +563,7 @@ camWriteButton.addEventListener('click', () => {
   else if(!isCam) alert('캠을 켜주세요')
   else {
     if(!isCamWrite) {
-      alert("캠에서 펜으로 인식할 부분을 클릭해주세요");
+      alert("캠에서 펜으로 인식할 부분을 다른 위치로 4번 클릭해주세요");
       extractColorVideo.style.visibility = 'visible'
       extractColorVideo.width = canvas.width
       extractColorVideo.height = canvas.height
@@ -709,14 +711,6 @@ socket.on('streamPlay_script', (userId, roomId, isCam) => {
   }
 })
 
-socket.on('pause_script', (userId, isPause) => {
-  const video = document.getElementById(userId+'!video')
-  if(video) {
-    if(isPause) video.play()
-    else video.pause()
-  }
-})
-
 socket.on('reLoading', (roomId)=>{
   if(roomId == ROOM_ID) {
     canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height)
@@ -793,85 +787,16 @@ socket.on('setMute', (isMute, muteUserId, userId) => {
 })
 
 document.addEventListener("keydown", (e) => {
-  if(e.key == ' ') {  
-    if(isPause)
-      myVideo.play()
-    else
-      myVideo.pause()
-    socket.emit('pause_server', user_id, isPause)
-    isPause=!isPause
-  }
-  if(e.key == 'Escape')  {//지우개
-    socket.emit('clearWhiteBoard', ROOM_ID)
-  }
-  if(e.key == '*' && !isDisplaying) {  //화면공유
-    displayButton.innerText = '공유 종료'
-    displayPlay()
-  }
+  if(e.key == 'Escape') socket.emit('clearWhiteBoard', ROOM_ID) //지우개
+
   if(e.key == '`') {
     cam_mouse.click = true
   }
-  if(e.key == '/' && !isNoCamUser) {
-    //localStream.getTracks().forEach(t => localStream.removeTrack(t))
-    if(isCam) {
-      myVideoBackground.style.width = '160px'
-      myVideoBackground.style.height = '118px'
-      myVideo.width = 0
-      myVideo.height = 0
-      camButton.innerText = '캠 켜기'
-    }
-    else {
-      myVideoBackground.style.width = '0px'
-      myVideoBackground.style.height = '0px'
-      myVideo.width = 160
-      myVideo.height = 118
-      camButton.innerText = '캠 끄기'
-    }
-    localStream.flag = 0
-    socket.emit('streamPlay_server', user_id,ROOM_ID,isCam)
-    isCam = !isCam    
-  }
-  
-  if(e.key == '+' && !isMuteUser) {
-    if(isMute) audioButton.innerText = '마이크 끄기'
-    else audioButton.innerText = '마이크 켜기'
-    isMute = !isMute
-    socket.emit('muteRequest_server', user_id,ROOM_ID,isMute)
-  }
+
   if(e.key == 'Insert') {  //디버그용
     console.log(thr)
     console.log(myPeer.connections)
   }
-  if(e.key == 'Home' && !isNoCamUser && isCam) {
-    if(!isCamWrite) {
-      alert("캠에서 펜으로 인식할 부분을 클릭해주세요");
-      extractColorVideo.style.visibility = 'visible'
-      extractColorVideo.width = canvas.width
-      extractColorVideo.height = canvas.height
-      isCamWrite = true
-      camWriteButton.innerText = '캠 필기 끄기'
-    }
-    else {
-      R = [];
-      G = [];
-      B = [];
-      console.log("clear")
-      alert("캠 필기 기능 종료")
-      cursor_context.clearRect(0,0, width, height)
-      extractColorVideo.style.visibility = 'hidden'
-      isCamWrite = false
-      isCamWrite2 = false
-      camWriteButton.innerText = '캠 필기 켜기'
-    }
-  }
-  if(e.key === 'PageUp') thr += 1
-  if(e.key === 'PageDown') thr -= 1
-  if(e.key === 'g'){
-    탄지로()
-    if(gesturechk) gestureButton.innerText = '제스처 켜기'
-    else gestureButton.innerText = '제스처 끄기'
-    gesturechk = !gesturechk
-  } 
 })
 
 document.addEventListener("keyup", (e) => {
