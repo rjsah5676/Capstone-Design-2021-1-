@@ -67,7 +67,7 @@ extractColorVideo.height = 0
 myDisplay.id = 'display'
 myVideo.muted = true
 myVideo.width = 160
-myVideo.height = 120
+myVideo.height = 118
 hiddenCamVideo.width = 1024
 hiddenCamVideo.height = 768
 
@@ -101,9 +101,12 @@ if (window.Worker) {
 }
 */
 
-var R,G,B;
-
+var R = []
+var G = []
+var B = []
 var isCamWrite2 = false
+
+var cntt = 0
 
 extractColorVideo.addEventListener('click', (event) => { 
   const test = document.getElementById('output');
@@ -115,19 +118,27 @@ extractColorVideo.addEventListener('click', (event) => {
   var x = event.offsetX;
   var y = event.offsetY;
   alert("현재 좌표는 : "+x+" / " +y);
-  R = imageData.getRGBA(x,y,0);
-  G = imageData.getRGBA(x,y,1);
-  B = imageData.getRGBA(x,y,2);
-  console.log("R : "+R +", G : ," + G + " B : " + B);
+  tmpR = imageData.getRGBA(x,y,0);
+  tmpG = imageData.getRGBA(x,y,1);
+  tmpB = imageData.getRGBA(x,y,2);
+  console.log("R : "+tmpR +", G : ," + tmpG + " B : " + tmpB);
+  R.push(tmpR);
+  G.push(tmpG);
+  B.push(tmpB);
   //const ctest = document.getElementById('coloroutput').getContext("2d");
   //ctest.fillStyle = "rgb("+R+","+G+","+B+")";
   //ctest.fillRect(0,0,50,50);
   //fun_mask();
-  isCamWrite2 = true
-  extractColorVideo.style.visibility = 'hidden'
+
+  cntt++
+  if(cntt === 4) {
+    isCamWrite2 = true
+    extractColorVideo.style.visibility = 'hidden'
+    cntt=0
+  }
 });
 
-var thr = 15;
+var thr = 5;
 var extractWidth = 1024
 var extractHeight = 768
 
@@ -162,14 +173,19 @@ function extractDraw() {
     let src = cv.matFromImageData(imgData);
 
     let dst = new cv.Mat();
-    let low = new cv.Mat(src.rows, src.cols, src.type(), [R-thr, G-thr, B-thr, 0]);
-    let high = new cv.Mat(src.rows, src.cols, src.type(), [R+thr, G+thr, B+thr, 255]);
-  
+
+    let maxR = Math.max.apply(null,R)+thr;
+    let minR = Math.min.apply(null,R)-thr;
+    let maxG = Math.max.apply(null,G)+thr;
+    let minG = Math.min.apply(null,G)-thr;
+    let maxB = Math.max.apply(null,B)+thr;
+    let minB = Math.min.apply(null,B)-thr;
+
+    let low = new cv.Mat(src.rows, src.cols, src.type(), [minR, minG,minB, 0]);
+    let high = new cv.Mat(src.rows, src.cols, src.type(), [maxR, maxG, maxB, 255]);
+
     cv.inRange(src, low, high, dst);
-    //let tmpimg = new cv.Mat();
-    //cv.cvtColor(src, tmpimg, cv.COLOR_RGBA2GRAY,0);
-    
-    //cv.imshow(out,tmpimg);
+
     let ret = new cv.Mat();
     cv.bitwise_and(src, src, ret, dst);
     
@@ -227,6 +243,7 @@ function extractDraw() {
   }
   }
 }
+/*
 function rgb2hsv (r, g, b) {
   let rabs, gabs, babs, rr, gg, bb, h, s, v, diff, diffc, percentRoundFn;
   rabs = r / 255;
@@ -262,7 +279,7 @@ function rgb2hsv (r, g, b) {
       s: percentRoundFn(s * 100),
       v: percentRoundFn(v * 100)
   };
-}
+}*/
 
 myPeer.on('open', id => { //피어 접속시 맨 처음 실행되는 피어 함수
   user_id = id
@@ -343,7 +360,7 @@ function getNewUser()
     const userBox = document.createElement('userBox')
     const videoBackground = document.createElement('videoBackground')
     videoBackground.style.width = '160px'
-    videoBackground.style.height = '120px'
+    videoBackground.style.height = '118px'
 
     call.on('stream', userVideoStream => {
       socket.emit('getMute', call.peer, user_id, ROOM_ID)
@@ -394,7 +411,7 @@ function connectToNewUser(userId, userName) { //기존 유저 입장에서 새�
     const call = myPeer.call(userId, localStream)
     const video = document.createElement('video')
     video.width = 160
-    video.height = 120
+    video.height = 118
     const userBox = document.createElement('userBox')
     userBox.id = userId + '!userBox'
     const videoUserName = document.createElement('videoUserName') //비디오에 이름 표시 코드
@@ -493,7 +510,7 @@ camButton.addEventListener('click', () => {
   else {
     if(isCam) {
       myVideoBackground.style.width = '160px'
-      myVideoBackground.style.height = '120px'
+      myVideoBackground.style.height = '118px'
       myVideo.width = 0
       myVideo.height = 0
       camButton.innerText = '캠 켜기'
@@ -502,7 +519,7 @@ camButton.addEventListener('click', () => {
       myVideoBackground.style.width = '0px'
       myVideoBackground.style.height = '0px'
       myVideo.width = 160
-      myVideo.height = 120
+      myVideo.height = 118
       camButton.innerText = '캠 끄기'
     }
     localStream.flag = 0
@@ -552,6 +569,10 @@ camWriteButton.addEventListener('click', () => {
       camWriteButton.innerText = '캠 필기 끄기'
     }
     else {
+      R = [];
+      G = [];
+      B = [];
+      console.log("clear")
       alert("캠 필기 기능 종료")
       cursor_context.clearRect(0,0, width, height)
       extractColorVideo.style.visibility = 'hidden'
@@ -675,7 +696,7 @@ socket.on('streamPlay_script', (userId, roomId, isCam) => {
     const videoBackground = document.getElementById(userId + '!videoBackground')
    if(isCam) {
     videoBackground.style.width = '160px'
-    videoBackground.style.height = '120px'
+    videoBackground.style.height = '118px'
     video.width = 0
     video.height = 0
    }
@@ -683,7 +704,7 @@ socket.on('streamPlay_script', (userId, roomId, isCam) => {
     videoBackground.style.width = '0px'
     videoBackground.style.height = '0px'
     video.width = 160
-    video.height = 120
+    video.height = 118
    }
   }
 })
@@ -736,7 +757,7 @@ socket.on('sendStream_script', (userId_caller, userId_callee, roomId, isCam) => 
     const videoBackground = document.getElementById(userId_callee + '!videoBackground')
     if(!isCam) {
       videoBackground.style.width = '160px'
-      videoBackground.style.height = '120px'
+      videoBackground.style.height = '118px'
       video.width = 0
       video.height = 0
     }
@@ -744,7 +765,7 @@ socket.on('sendStream_script', (userId_caller, userId_callee, roomId, isCam) => 
       videoBackground.style.width = '0px'
       videoBackground.style.height = '0px'
       video.width = 160
-      video.height = 120
+      video.height = 118
     }
   }
 })
@@ -794,7 +815,7 @@ document.addEventListener("keydown", (e) => {
     //localStream.getTracks().forEach(t => localStream.removeTrack(t))
     if(isCam) {
       myVideoBackground.style.width = '160px'
-      myVideoBackground.style.height = '120px'
+      myVideoBackground.style.height = '118px'
       myVideo.width = 0
       myVideo.height = 0
       camButton.innerText = '캠 켜기'
@@ -803,7 +824,7 @@ document.addEventListener("keydown", (e) => {
       myVideoBackground.style.width = '0px'
       myVideoBackground.style.height = '0px'
       myVideo.width = 160
-      myVideo.height = 120
+      myVideo.height = 118
       camButton.innerText = '캠 끄기'
     }
     localStream.flag = 0
@@ -831,6 +852,10 @@ document.addEventListener("keydown", (e) => {
       camWriteButton.innerText = '캠 필기 끄기'
     }
     else {
+      R = [];
+      G = [];
+      B = [];
+      console.log("clear")
       alert("캠 필기 기능 종료")
       cursor_context.clearRect(0,0, width, height)
       extractColorVideo.style.visibility = 'hidden'
