@@ -6,6 +6,7 @@
   사람 많아지면 피어 꼬이는 경우 생김(최우선)
   모션 인식 연동
 */
+
 var user_name = prompt('대화명을 입력해주세요.', '')
 
 while(user_name == null || user_name == undefined || user_name == '' || user_name.length > 6)  {
@@ -30,10 +31,17 @@ const hiddenVideo = document.getElementById('hiddenVideo')
 var canvas = document.getElementById(ROOM_ID)
 var cursor_canvas = document.getElementById('cursorWhiteboard')
 
+var canvasImage = new Image()
+canvasImage.src = 'img/canvas.png'
+
 var context = canvas.getContext('2d')
 var cursor_context = cursor_canvas.getContext('2d')
 var extractContext = extractColorVideo.getContext('2d')
 var hiddenCamContext = hiddenCamVideo.getContext('2d')
+
+canvasImage.onload = function() {
+  context.drawImage(canvasImage, 0,0, canvas.width, canvas.height)
+}
 
 var user_id
 var isCamWrite = false
@@ -451,58 +459,7 @@ function addVideoStream(video, stream, userBox) {
   videoGrid.append(userBox)
 }
 
-function drawChatMessage(data){
-  var wrap = document.createElement('div'); 
-  if(data.user_id==user_id){
-    wrap.className="myMsg"
-  }
-  else{
-    wrap.className="anotherMsg"
-  }
-  var message = document.createElement('span');
-  message.className="msg";
 
-  
-  var name = document.createElement('span'); 
-
-  if(data.user_id!=user_id){
-    name.className="anotherName";
-    name.innerText = data.name+":"; 
-  }
-  else{
-    name.className="myName";
-    name.innerText = data.name+"(나):"; 
-  }
-
-  name.classList.add('output__user__name'); 
-  wrap.appendChild(name); 
-  message.innerText = data.message; 
-  message.classList.add('output__user__message'); 
-  wrap.classList.add('output__user'); 
-  wrap.dataset.id = socket.id; 
-  wrap.appendChild(message); 
-  return wrap; 
-}
-
-document.querySelector('#chatInput').addEventListener('keyup', (e)=>{
-  if (e.keyCode === 13) {
-    var message = chatInput.value; 
-  if(!message){
-    return false; 
-  }
-  socket.emit('sendMessage', { message, ROOM_ID, user_id });
-  chatInput.value = '';
-  }  
-});
-
-sendButton.addEventListener('click', function(){ 
-  var message = chatInput.value; 
-  if(!message){
-    return false; 
-  }
-  socket.emit('sendMessage', { message, ROOM_ID, user_id });
-  chatInput.value = '';
-});
 
 var camButton = document.getElementById('cam_button')
 var camImage = document.getElementById('webc')
@@ -739,7 +696,8 @@ socket.on('streamPlay_script', (userId, roomId, isCam) => {
 socket.on('reLoading', (roomId)=>{
   if(roomId == ROOM_ID) {
     canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height)
-    socket.emit('reDrawing', ROOM_ID)
+    //socket.emit('reDrawing', ROOM_ID)
+    context.drawImage(canvasImage, 0,0, canvas.width, canvas.height)
   }
 })
 
@@ -819,8 +777,7 @@ document.addEventListener("keydown", (e) => {
   }
 
   if(e.key == 'Insert') {  //디버그용
-    console.log(thr)
-    console.log(myPeer.connections)
+    console.log(mouse.pos.y)
   }
 })
 
@@ -923,6 +880,7 @@ document.addEventListener("DOMContentLoaded", ()=> {
 
       extractColorVideo.width = width
       extractColorVideo.height = height
+      context.drawImage(canvasImage, 0,0, canvas.width, canvas.height)
     }
 
     if(mouse.click && mouse.move && mouse.pos_prev) {
