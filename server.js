@@ -7,6 +7,7 @@ const fs = require('fs')
 
 const mongoose = require('mongoose');
 const User = require('./models/user');
+const Room = require('./models/room');
 
 //로컬 테스트시 여기서 복붙
 //mongoose 연결
@@ -27,11 +28,22 @@ app.get('/', (req, res) => {
 })
 
 app.get('/newroom', (req, res) => {
-  res.redirect(`/${uuidV4()}`)
+  var newRoomId = uuidV4()
+  const room = new Room({
+    roomId: newRoomId,
+  });
+  room.save((err, room)=>{
+    if(err) return console.error(err);
+  });
+  res.redirect(`/${newRoomId}`)
 })
 
-app.get('/:room', (req, res) => {
-  res.render('room', { roomId: req.params.room })
+app.get('/:room', async(req, res) => {
+  const test = await Room.findOne({roomId: req.params.room}, null, {})
+  if(test !== null) res.render('room', { roomId: req.params.room })
+  else {
+    res.render('noPage')
+  }
 })
 /*
 app.get('/views/settingPage', (req, res) => {
