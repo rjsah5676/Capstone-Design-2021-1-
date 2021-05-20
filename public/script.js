@@ -31,6 +31,9 @@ const hiddenVideo = document.getElementById('hiddenVideo')
 var canvas = document.getElementById(ROOM_ID)
 var cursor_canvas = document.getElementById('cursorWhiteboard')
 
+var penColor = 'black'
+var penWidth = 2
+
 var canvasImage = new Image()
 canvasImage.src = 'img/canvas.png'
 
@@ -473,9 +476,9 @@ var gestureButton = document.getElementById('gesture_button')
 var gestureImage = document.getElementById('hand')
 
 camButton.addEventListener('click', () => {
-  if(isNoCamUser) {
-    alert('캠이 없습니다.')
-  }
+  if(isNoCamUser) alert('캠이 없습니다.')
+  else if(isCamWrite2) alert('캠 필기가 켜져있습니다.')
+  else if(gesturechk) alert('제스처가 켜져있습니다.')
   else {
     if(isCam) {
       myVideoBackground.style.width = '160px'
@@ -554,6 +557,7 @@ camWriteButton.addEventListener('click', () => {
       extractColorVideo.style.visibility = 'hidden'
       isCamWrite = false
       isCamWrite2 = false
+      cntt = 0
       carwriteImage.src="img/[크기변환]pencil.png"
       camWriteButton.innerText = '캠 필기 켜기'
     }
@@ -561,16 +565,20 @@ camWriteButton.addEventListener('click', () => {
 })
 
 gestureButton.addEventListener('click', () => {
-  탄지로()
-  if(gesturechk) {
-    gestureImage.src="img/[크기변환]hand.png"
-    gestureButton.innerText = '제스처 켜기'
-  }
+  if(isNoCamUser) alert("캠이 없습니다.")
+  else if(!isCam) alert("캠을 켜주세요.")
   else {
-    gestureImage.src="img/[크기변환]nohand.png"
-    gestureButton.innerText = '제스처 끄기'
+    탄지로()
+    if(gesturechk) {
+      gestureImage.src="img/[크기변환]hand.png"
+      gestureButton.innerText = '제스처 켜기'
+    }
+    else if(!gesturechk) {
+      gestureImage.src="img/[크기변환]nohand.png"
+      gestureButton.innerText = '제스처 끄기'
+    }
+    gesturechk = !gesturechk
   }
-  gesturechk = !gesturechk
 })
 
 
@@ -635,6 +643,7 @@ function displayPlay() {
     socket.emit('displayConnect_server', ROOM_ID, user_id)
   }).catch(error => {
     displayButton.innerText = '화면 공유'
+    displayImage.src="img/[크기변환]document.png"
     console.log(error)
   });
   displayVideo.addEventListener('play', function() {
@@ -770,14 +779,12 @@ socket.on('setMute', (isMute, muteUserId, userId) => {
 })
 
 document.addEventListener("keydown", (e) => {
-  if(e.key == 'Escape') socket.emit('clearWhiteBoard', ROOM_ID) //지우개
-
   if(e.key == '`') {
     cam_mouse.click = true
   }
 
   if(e.key == 'Insert') {  //디버그용
-    console.log(mouse.pos.y)
+    console.log(mouse.pos.x, mouse.pos.y, canvas.width)
   }
 })
 
@@ -823,6 +830,22 @@ document.addEventListener("DOMContentLoaded", ()=> {
     mouse.move = true
   }
 
+  cursor_canvas.onclick = (e) => {
+    if(selected === 1) {}
+    else if(selected === 2) {}
+    else if(selected === 3) socket.emit('clearWhiteBoard', ROOM_ID)
+    else if(selected === 4) penColor = 'black'
+    else if(selected === 5) penColor = 'red'
+    else if(selected === 6) penColor = 'orange'
+    else if(selected === 7) penColor = 'yellow'
+    else if(selected === 8) penColor = '#1EDF16'
+    else if(selected === 9) penColor = '#0054FF'
+    else if(selected === 10) penColor = 'blue'
+    else if(selected === 11) penColor = 'purple'
+    else if(selected === 12) penWidth = 1
+    else if(selected === 13) penWidth = 2
+    else if(selected === 14) penWidth = 4
+  }
   socket.on('drawLine', data => {
     var line = data.line
     var size = data.size
@@ -831,14 +854,90 @@ document.addEventListener("DOMContentLoaded", ()=> {
         chkfirst++
       }
       else{
+        context.strokeStyle = penColor
         context.beginPath()
-        context.lineWidth = 2
+        context.lineWidth = penWidth
         context.moveTo(line[0].x * (width/size[0]), line[0].y * (height/size[1]))
         context.lineTo(line[1].x * (width/size[0]), line[1].y * (height/size[1]))
         context.stroke()
       }
     }
   })
+
+  var selected = 0
+  var newImg = new Image()
+  newImg.onload = function() {
+    context.drawImage(newImg, 0,0, canvas.width, canvas.height)
+  }
+  function selectImage(selectNum) {
+    if(selected !== selectNum) {
+      newImg.src = 'img/select_' + selectNum.toString() + '.png'
+      selected = selectNum
+    }
+  }
+  function changeCanvasImage(relativeMouseX, relativeMouseY) {
+    if(relativeMouseY >= 0.91 && relativeMouseY <= 0.99) {
+      if(relativeMouseX >= 0.034 && relativeMouseX <= 0.073) {
+        selectImage(1)
+      }
+      else if(relativeMouseX >= 0.105 && relativeMouseX <= 0.128) {
+        selectImage(2)
+      }
+      else if(relativeMouseX >= 0.159 && relativeMouseX <= 0.185) {
+        selectImage(3)
+      }
+      else if(relativeMouseX >= 0.218 && relativeMouseX <= 0.247) {
+        selectImage(4)
+      }
+      else if(relativeMouseX >= 0.278 && relativeMouseX <= 0.309) {
+        selectImage(5)
+      }
+      else if(relativeMouseX >= 0.34 && relativeMouseX <= 0.37) {
+        selectImage(6)
+      }
+      else if(relativeMouseX >= 0.401 && relativeMouseX <= 0.431) {
+        selectImage(7)
+      }
+      else if(relativeMouseX >= 0.463 && relativeMouseX <= 0.494) {
+        selectImage(8)
+      }
+      else if(relativeMouseX >= 0.525 && relativeMouseX <= 0.555) {
+        selectImage(9)
+      }
+      else if(relativeMouseX >= 0.586 && relativeMouseX <= 0.617) {
+        selectImage(10)
+      }
+      else if(relativeMouseX >= 0.648 && relativeMouseX <= 0.679) {
+        selectImage(11)
+      }
+      else if(relativeMouseX >= 0.708 && relativeMouseX <= 0.723) {
+        selectImage(12)
+      }
+      else if(relativeMouseX >= 0.752 && relativeMouseX <= 0.772) {
+        selectImage(13)
+      }
+      else if(relativeMouseX >= 0.801 && relativeMouseX <= 0.824) {
+        selectImage(14)
+      }
+      else if(relativeMouseX >= 0.853 && relativeMouseX <= 0.896) {
+        selectImage(15)
+      }
+      else if(relativeMouseX >= 0.927 && relativeMouseX <= 0.968) {
+        selectImage(16)
+      }
+      else if (selected !== 0){
+        newImg.src = 'img/canvas.png'
+        context.clearRect(0, canvas.height * 0.905, canvas.width, canvas.height*0.99)
+        selected = 0
+      }
+    }
+    else if(selected !== 0) {
+      newImg.src = 'img/canvas.png'
+      context.clearRect(0, canvas.height * 0.905, canvas.width, canvas.height*0.99)
+      selected = 0
+    }
+    
+  }
 
   function extractLoop() {
     extractDraw()
@@ -853,6 +952,7 @@ document.addEventListener("DOMContentLoaded", ()=> {
       isDisplayHost = false
       isDisplaying = false
       displayButton.innerText = '화면 공유'
+      displayImage.src="img/[크기변환]document.png"
     }
     if(isDisplaying) {
       var displayVideo = document.getElementById('userDisplay')
@@ -870,6 +970,12 @@ document.addEventListener("DOMContentLoaded", ()=> {
 
     width = parseInt(window.innerWidth*rX)
     height = parseInt(window.innerHeight-200)
+
+    var relativeMouseY = mouse.pos.y/canvas.height
+    var relativeMouseX = mouse.pos.x/canvas.width
+
+    changeCanvasImage(relativeMouseX, relativeMouseY)
+
     if(canvas.width != width || canvas.height != height) {  //웹 페이지 크기가 변할 때
       socket.emit('reDrawing', ROOM_ID)
       canvas.width = width
@@ -884,14 +990,7 @@ document.addEventListener("DOMContentLoaded", ()=> {
     }
 
     if(mouse.click && mouse.move && mouse.pos_prev) {
-      socket.emit('drawLine', {line: [mouse.pos, mouse.pos_prev], roomId:ROOM_ID, size:[width, height]})
-      /*
-      context.beginPath()
-      context.lineWidth = 2
-      context.moveTo(mouse.pos.x, mouse.pos.y )
-      context.lineTo(mouse.pos_prev.x , mouse.pos_prev.y )
-      context.stroke()*/
-
+      if(relativeMouseY < 0.905 && mouse.pos_prev.y/canvas.height < 0.905) socket.emit('drawLine', {line: [mouse.pos, mouse.pos_prev], roomId:ROOM_ID, size:[width, height]})
       mouse.move = false
     }
     mouse.pos_prev = {x: mouse.pos.x, y: mouse.pos.y}
