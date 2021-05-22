@@ -133,14 +133,21 @@ io.on('connection', socket => {
 
     //---호스트 판별---//
     var ishost = true
-    const hostUser = await User.findOne({roomid:roomId, isHost:true}, null, {})
+    const hostUser = await User.findOne({roomId:roomId, isHost:true}, null, {})
+    const room = await Room.findOne({roomId: roomId}, null, {})
     if(hostUser != null)
       ishost=false
+    if(ishost) {
+      room.hostId = userId
+      
+    }
+    room.participant += 1
+    room.save()
     //---호스트 판별 끝---//
     const user = new User({
       userName:userName,
       userId : userId,
-      roomid: roomId,
+      roomId: roomId,
       isHost: ishost,
     });
     user.save((err, user)=>{
@@ -155,11 +162,32 @@ io.on('connection', socket => {
 
     socket.to(roomId).broadcast.emit('user-connected', userId, userName)
 
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async() => {
+      var flag = 0
+      const room = await Room.findOne({roomId: roomId}, null, {})
+      if(room.participant == 1) {
+        Room.remove({roomId: roomId}).then((result)=>{
+          console.log("delete room id : "+roomId);
+          console.log(result);
+        });
+      }
+      else {
+        room.participant -= 1
+        if(userId === room.hostId)
+          flag = 1
+        room.save()
+      }
       if(isDisplayHost[roomId] === userId) socket.to(roomId).broadcast.emit('displayReset_script', roomId, userId) //화면공유 켠 사람이 종료시
-      User.remove({userId : userId}).then((result)=>{
+      User.remove({userId : userId}).then(async(result)=>{
         console.log("delete user id : "+userId+"user name : "+userName);
         console.log(result);
+        if(flag) {
+          const newHost = await User.findOne({roomId: roomId}, null, {})
+          newHost.isHost = true
+          room.hostId = newHost.userId
+          room.save()
+          newHost.save()
+        }
       });
       var exit_msg = userName + '님이 퇴장하셨습니다.'
       socket.to(roomId).emit('updateMessage', { name : 'SERVER', message : exit_msg, roomId: roomId });
