@@ -139,7 +139,7 @@ io.on('connection', socket => {
       ishost=false
     if(ishost) {
       room.hostId = userId
-      
+      socket.to(roomId).emit('setHost', userId);
     }
     room.participant += 1
     room.save()
@@ -187,6 +187,8 @@ io.on('connection', socket => {
           room.hostId = newHost.userId
           room.save()
           newHost.save()
+          socket.to(roomId).broadcast.emit('setHost', newHost.userId);
+          socket.to(roomId).broadcast.emit('hostChange', newHost.userId, newHost.userName)
         }
       });
       var exit_msg = userName + '님이 퇴장하셨습니다.'
