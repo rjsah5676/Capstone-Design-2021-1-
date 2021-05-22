@@ -8,7 +8,11 @@ while(user_name == null || user_name == undefined || user_name == '' || user_nam
   if(user_name.length > 6) user_name = prompt('대화명을 6자 이하로 설정해주세요.', '')
   else user_name = prompt('대화명을 다시 입력해주세요.', '')
 }
-
+window.onload =function () {
+  window.open("/address/"+ ROOM_ID,  "popup", "width=300, \
+  status=no, menubars=0, height=300, scrollbars=0, top=100px, left=100px\
+  resizable=0, toolbar=0, directories=0, location=0, menubar=no");
+}
 const socket = io('/')
 var chatWindow = document.getElementById('chatWindow'); 
 const videoGrid = document.getElementById('video-grid')

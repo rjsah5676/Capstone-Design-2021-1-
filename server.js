@@ -45,6 +45,11 @@ app.get('/:room', async(req, res) => {
     res.render('noPage')
   }
 })
+
+app.get('/address/:room', (req, res) => {
+  res.render('address', {roomId: req.params.room})
+})
+
 /*
 app.get('/views/settingPage', (req, res) => {
   console.log("Hh")
