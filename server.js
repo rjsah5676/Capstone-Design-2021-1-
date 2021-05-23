@@ -199,12 +199,37 @@ io.on('connection', socket => {
   //---캔버스 코드---
   socket.on('clearWhiteBoard', roomId => {
     line_track[roomId]=[]
-    io.sockets.in(roomId).emit('reLoading', roomId)
+    io.sockets.in(roomId).emit('reLoading')
   })
   socket.on('reDrawing', roomId => {
     for(var i in line_track[roomId]) {
       socket.emit('drawLine', {line: line_track[roomId][i].line, roomId:line_track[roomId][i].roomId, size: line_track[roomId][i].size, penWidth: line_track[roomId][i].penWidth, penColor: line_track[roomId][i].penColor});
     }
+  })
+
+  socket.on('erase_server', (roomId, click_x, click_y, width, height) => {
+    var line_x = 0
+    var line_y = 0
+    var pos_line_x = 0
+    var pos_line_y = 0
+    for(var i in line_track[roomId]) {
+      line_x = line_track[roomId][i].line[0].x / line_track[roomId][i].size[0]
+      line_y = line_track[roomId][i].line[0].y / line_track[roomId][i].size[1]
+      pos_line_x = line_track[roomId][i].line[1].x / line_track[roomId][i].size[0]
+      pos_line_y = line_track[roomId][i].line[1].y / line_track[roomId][i].size[1]
+      var deg_x = (pos_line_x - line_x)
+      var deg_y = (pos_line_y - line_y)
+      var result_x = click_x/width - line_x
+      var result_y = click_y/height - line_y
+      //deg_x, deg_y 같을 경우 고려
+      console.log(click_y, height)
+     // console.log('[' + result_y, parseInt((result_x*deg_y)/deg_x) + ']'+ i)  
+      if(result_y < (result_x*deg_y)/deg_x + 0.005 && result_y > (result_x*deg_y)/deg_x - 0.005)
+        line_track[roomId].splice(i,1) 
+    }
+    io.sockets.in(roomId).emit('reLoading')
+    for(var i in line_track[roomId])
+     io.sockets.in(roomId).emit('stroke', {line: line_track[roomId][i].line, roomId:line_track[roomId][i].roomId, size: line_track[roomId][i].size, penWidth: line_track[roomId][i].penWidth, penColor: line_track[roomId][i].penColor}) 
   })
   /*
   for(var i in line_track[roomId]) {
