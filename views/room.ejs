@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <link href="room.css" rel="stylesheet" />
     <script>
       const ROOM_ID = '<%= roomId %>';
     </script>
@@ -12,120 +13,74 @@
       defer
       src="https://unpkg.com/peerjs@1.2.0/dist/peerjs.min.js"
     ></script>
+    <script async src="https://docs.opencv.org/3.4/opencv.js"></script>
     <script src="/socket.io/socket.io.js" defer></script>
+
     <script src="script.js" defer></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/handpose"></script>
+    <script src="fingerpose.js" defer></script>
+
+    <link href="floatstyle.css" rel="stylesheet" />
+    <script src="http://code.jquery.com/jquery-latest.js"></script>
+    <script src="jquery-ui.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/2.0.2/anime.js"></script>
+    <script src="https://use.fontawesome.com/releases/v5.2.0/js/all.js"></script>
     <title>AirBoard Room</title>
-    <style>
-      body {
-        background-color:#222a30;
-      }
-      #video-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, 180px);
-        grid-auto-rows: 180px;
-      }
-      video {
-        width: 160px;
-        height: 120px;
-        object-fit: cover;
-        z-index: -1;
-        position:relative;
-      }
-      userBox {
-        width: 180px;
-        height: 180px;
-      }
-      videoUserName {        
-        background-color: #4e5559;
-        display:block;
-        color: white; width: 160px;
-        text-align: center;
-      }
-      .videoBox {
-        width: 100%; overflow: hidden;margin: 0px auto; position: relative;
-      }
-      .whiteboard {
-        background-color: white;
-        display: block;
-        width:100%;
-        padding:0;
-        border: 2px solid white;
-      }
-      .chatBox {
-        background-color: #161b1f;
-        margin-left:auto;
-        display: block;
-        width:20%;
-        height:93%;
-        position:absolute;
-        top:0;left:0;right:0;bottom: 0;
-      }
-      .leftBox {
-        float: left;
-        width: 75%;
-        height: 80%;
-      }
-      .footer {
-        display: block;
-      }
-      #chatWindow {
-        overflow:auto;
-        height: 90%;
-        top:0;
-        bottom:3em;
-      }
-      #inputBox {
-        background-color: #30383d;
-        display: block;
-        bottom:0;
-        height: 10%;
-        padding:.5em;
-        margin-bottom:auto;
-        border-top: 1px solid black;
-      }
-      .output__user {
-        display: block;
-        color:white;
-        margin-left: 10px;
-        font-size:15px;
-      }
-      #displayBox {
-        position:absolute;
-        margin-right: auto;
-      }
-      #userDisplay {
-        width: 0px;
-        height: 0px;
-      }
-      #info {
-        color: white;
-      }
-      #nocam__video {
-        width:0px;
-        height:0px;
-      }
-    </style>
   </head>
   <body>
-    <video id="nocam__video">
-      <source src="../img/nocam.mp4" type="video/mp4" />
-    </video>
-    <div class='leftBox'>
-      <div class="videoBox">
-        <div id="video-grid"></div>
-        </div>
-    <div id="displayBox"></div>
-    <canvas class='whiteboard' id='<%= roomId %>'></canvas>
+    <div class="center menu">
+      <div id="myMenu"></div>
     </div>
-
-    <div class="chatBox">
-      <div id="info"></div>
-      <div id="chatWindow"></div>
-      <div id="inputBox">
-      <input id="chatInput" type="text">
-        <button id="chatMessageSendBtn">전송</button>
+    <div id="extractCamArea"></div>
+    <div id="videoarea">
+      <div id="video-grid"></div>
+    </div>
+    <div id=buttonArea>
+      <div>
+        <img src="img/[크기변환]web-cam.png" id='webc'alt="My Image">
+        <button class="btn" id ='cam_button'>캠 끄기</button>
+      </div>
+      <div>
+        <img src="img/[크기변환]microphone.png" id='micr'alt="My Image">
+        <button class="btn" id ='audio_button'>마이크 끄기</button>
+      </div>
+      <div>
+        <img src="img/[크기변환]document.png" id='docu'alt="My Image">
+        <button class="btn" id ='display_button'>화면 공유</button>
+      </div>
+      <div>
+        <img src="img/[크기변환]pencil.png" id='penc'alt="My Image">
+        <button class="btn" id ='camWrite_button'>캠 필기 켜기</button>
+      </div>
+      <div>
+        <img src="img/[크기변환]hand.png" id='hand'alt="My Image">
+        <button class="btn" id ='gesture_button'>제스처 켜기</button>
       </div>
     </div>
-    <div class="footer"></div>
+    <div id= "test">
+      <canvas class='whiteboard' id='<%= roomId %>'></canvas>
+      <canvas class='cursor_whiteboard' id='cursorWhiteboard'></canvas>
+      <canvas class='extract_cam' id='extractCam'></canvas>
+      <div id="whiteboard_buttonArea"></div>
+    </div>
+    <div class="chatarea">
+      <div id="info"></div>
+      <div id="chatWindow"></div>
+    </div>
+    <div id="inputBox">
+      <input id="chatInput" autocomplete="off" type="text" placeholder="메세지를 입력하세요">
+      <button id="chatMessageSendBtn">전송</button>
+    </div>
+  </div>
+  
+  <video id="nocam__video">
+    <source src="../img/nocam.mp4" type="video/mp4" />
+  </video>
+  <video id="hiddenVideo"></video>
+
+  <script type="text/javascript" src="floatbuttonscript.js"></script>
+  <script type="text/javascript" src="buttonscript.js"></script>
   </body>
 </html>

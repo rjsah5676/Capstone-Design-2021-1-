@@ -10,11 +10,15 @@ const userSchema = new Schema({
         type: String,
         required: true,
     },
-    roomid: {
+    roomId: {
         type: String,
         required: true,
     },
     isHost: {
+        type: Boolean,
+        default: false,
+    },
+    isMute: {
         type: Boolean,
         default: false,
     }
