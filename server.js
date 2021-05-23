@@ -48,6 +48,19 @@ app.get('/:room', async(req, res) => {
   }
 })
 
+app.post('/joinroom', (req, res) => {
+  console.log(req.body.address)
+  //res.render('room', { roomId: req.body.address })
+  var tmp = req.body.address.split("/");
+  console.log(tmp);
+  if(tmp[2]=='airboard.ga'){
+    res.redirect(`/${tmp[3]}`);
+  }
+  else{
+    res.render('noPage')
+  }
+})
+
 app.get('/address/:room', (req, res) => {
   res.render('address', {roomId: req.params.room})
 })

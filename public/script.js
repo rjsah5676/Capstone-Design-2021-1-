@@ -2,6 +2,7 @@
   화면공유 했을 때 안넘어가는 경우가있음.(건모-> 형택: X, 형택->건모: O)
   호스트 기능들 추가
   시나리오 보여줄 기능들 다 넣기
+  되돌리기 했을 때 맨 처음 필기 늘어나는 현상 있음
 */
 var user_name = prompt('대화명을 입력해주세요.', '')
 
@@ -92,7 +93,7 @@ navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia 
 var rX = 0.79872  //rX, rY는 최대한 마우스 에임에 맞는 필기를 위해 곱해주는 용도
 var rY = 0.8091
 
-const myPeer = new Peer({host:'peerjs-server.herokuapp.com', secure:true, port:443})
+const myPeer = new Peer({host:'goingsamsung-peerjs-server.herokuapp.com', secure:true, port:443})
 const peers = {}
 
 function printz(x)  //디버그용
