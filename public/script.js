@@ -299,7 +299,7 @@ function displayPlay() {
   }).then(stream => {
     localStream.flag = 2
     localDisplay = stream
-    isDisplaying= !isDisplaying
+    isDisplaying = true
     isDisplayHost= true
     //socket.emit('isDisplaying_script', isDisplaying, ROOM_ID)
     video.srcObject = stream
@@ -315,6 +315,7 @@ function displayPlay() {
 
 
 function draw( video, context, width, height ) {
+  printz(isDisplaying)
   if(localDisplay.active == true && isDisplaying) {
     width = parseInt(window.innerWidth*0.742)
     height = parseInt(window.innerHeight*0.753)
@@ -331,6 +332,8 @@ function draw( video, context, width, height ) {
   }
   else{
     if(isDisplayHost) socket.emit('displayReset_server', ROOM_ID, user_id)
+    var v = document.getElementById('userDisplay')
+    v.remove()
     isDisplayHost = false
     isDisplaying = false
     drawPause = false
@@ -410,7 +413,7 @@ document.addEventListener("keydown", (e) => {
     isMute = !isMute
   }*/
   if(e.key == 'Insert') {  //디버그용
-    printz(localDisplay.active, localDisplay.srcObject)
+    console.log(isDisplaying, localDisplay.active)
   }
 })
 
