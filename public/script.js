@@ -33,7 +33,6 @@ var penColor = 'black'
 var penWidth = 2
 
 var canvasImage = new Image()
-canvasImage.src = 'img/canvas.png'
 
 var context = canvas.getContext('2d')
 var cursor_context = cursor_canvas.getContext('2d')
@@ -336,7 +335,9 @@ function userJoin()
     socket.emit('join-room', ROOM_ID, user_id, user_name)
     window.open("/address/"+ ROOM_ID,  "popup", "width=300, \
     status=no, menubars=0, height=300, scrollbars=0, top=100px, left=100px\
-    resizable=0, toolbar=0, directories=0, location=0, menubar=no");
+    resizable=0, toolbar=0, directories=0, location=0, menubar=no")
+    canvasImage.src = 'img/canvas.png'
+    allLoaded()
   })
   getNewUser()
 
@@ -1029,7 +1030,8 @@ var relativeY = 188
 var width = window.innerWidth
 var height = window.innerHeight
 //---캔버스 코드 시작---
-document.addEventListener("DOMContentLoaded", ()=> {
+
+function allLoaded() {
   var socket = io.connect()
   canvas.width = parseInt(width*rX)
   canvas.height = parseInt(height-200)
@@ -1134,7 +1136,7 @@ document.addEventListener("DOMContentLoaded", ()=> {
   socket.emit('reDrawing', ROOM_ID)
   mainLoop()
   //---캔버스 코드 끝---
-})
+}
 
 var gestureFlag = false
 
