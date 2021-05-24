@@ -93,7 +93,8 @@ navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia 
 var rX = 0.79872  //rX, rY는 최대한 마우스 에임에 맞는 필기를 위해 곱해주는 용도
 var rY = 0.8091
 
-const myPeer = new Peer({host:'goingsamsung-peerjs-server.herokuapp.com', secure:true, port:443})
+//const myPeer = new Peer({host:'goingsamsung-peerjs-server.herokuapp.com', secure:true, port:443})
+const myPeer = new Peer({})
 const peers = {}
 
 function printz(x)  //디버그용
@@ -257,7 +258,7 @@ function extractDraw() {
       cursor_context.fillRect(xx * (width/hiddenCamVideo.width), yy * (height/hiddenCamVideo.height), 3, 3)
       if(cam_mouse.pos_prev && cam_mouse.click && penStyle === 'pen') {
         if(camRelativeMouseY < 0.905 && cam_mouse.pos_prev.y/hiddenCamVideo.height < 0.905)
-          socket.emit('drawLine', {line: [cam_mouse.pos, cam_mouse.pos_prev], roomId:ROOM_ID, size:[hiddenCamVideo.width, hiddenCamVideo.height], penWidth: penWidth, penColor: penColor})
+          socket.emit('drawLine', {line: [cam_mouse.pos, cam_mouse.pos_prev], roomId:ROOM_ID, userId:user_id, size:[hiddenCamVideo.width, hiddenCamVideo.height], penWidth: penWidth, penColor: penColor})
       }
       else if(cam_mouse.click && penStyle === 'eraser') socket.emit('erase_server', ROOM_ID, user_id, cam_mouse.pos.x, cam_mouse.pos.y, width, height)
       cam_mouse.pos_prev = {x: cam_mouse.pos.x, y: cam_mouse.pos.y}
@@ -564,6 +565,9 @@ camWriteButton.addEventListener('click', () => {
     }
     else {
       alert("캠 필기 기능 종료")
+      R=[]
+      G=[]
+      B=[]
       cursor_context.clearRect(0,0, width, height)
       extractColorVideo.style.visibility = 'hidden'
       isCamWrite = false
@@ -982,6 +986,7 @@ document.addEventListener("keyup", (e) => {
 
 function clickCanvas(select)
 {
+  console.log("a")
   if(select === 1) penStyle = 'pen'
   else if(select === 2) penStyle = 'eraser'
   else if(select === 3) socket.emit('clearWhiteBoard', ROOM_ID)
@@ -996,7 +1001,7 @@ function clickCanvas(select)
   else if(select === 12) penWidth = 1
   else if(select === 13) penWidth = 2
   else if(select === 14) penWidth = 4
-  else if(select === 15) socket.emit('undo_server', ROOM_ID, user_id)  
+  else if(select === 15) socket.emit('undo_server', ROOM_ID, user_id)
   else if(select === 16) socket.emit('redo_server', ROOM_ID, user_id)
 }
 
