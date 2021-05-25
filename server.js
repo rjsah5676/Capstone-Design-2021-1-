@@ -193,6 +193,13 @@ io.on('connection', socket => {
       }
     }
   })
+  socket.on('nameChange_server', async(roomId, userId, isHost, userName) => {
+    users = await User.findOne({userId:userId}, null, {})
+    console.log(users)
+    users.userName = userName
+    users.save()
+    io.sockets.in(roomId).emit('nameChange_script', userId, isHost, userName)
+  })
   socket.on('join-room', async(roomId, userId, userName) => {
     socket.userName=userName
     socket.userId = userId
@@ -206,7 +213,7 @@ io.on('connection', socket => {
       ishost=false
     if(ishost) {
       room.hostId = userId
-      socket.to(roomId).emit('setHost', userId);
+      socket.emit('setHost', userId);
     }
     room.participant += 1
     room.save()

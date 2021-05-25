@@ -5,7 +5,7 @@
   되돌리기 했을 때 맨 처음 필기 늘어나는 현상 있음
 */
 var user_name = prompt('대화명을 입력해주세요.', '')
-
+if(user_name === null) window.location.href = '/'
 while(user_name == null || user_name == undefined || user_name == '' || user_name.length > 6)  {
   if(user_name.length > 6) user_name = prompt('대화명을 6자 이하로 설정해주세요.', '')
   else user_name = prompt('대화명을 다시 입력해주세요.', '')
@@ -309,6 +309,12 @@ myPeer.on('open', id => { //피어 접속시 맨 처음 실행되는 피어 함�
   user_id = id
 })
 
+function joinLoop()
+{
+  if(user_id === null || user_id === undefined) setTimeout(joinLoop, 1000)
+  else socket.emit('join-room', ROOM_ID, user_id, user_name)
+}
+
 function userJoin()
 {
   localStream.flag = 0
@@ -316,7 +322,7 @@ function userJoin()
   var videoUserName = document.createElement('videoUserName') //비디오에 이름 표시 코드
   var bold = document.createElement('b')
   var videoUserNameText = document.createTextNode(user_name)
-  bold.id = user_id + '!bold'
+  bold.id = 'mybold'
   videoUserName.appendChild(bold)
   bold.appendChild(videoUserNameText)
   userBox.appendChild(videoUserName)
@@ -332,7 +338,9 @@ function userJoin()
     hiddenVideo.play()
     await 탄지로()
     videoGrid.append(userBox)
-    socket.emit('join-room', ROOM_ID, user_id, user_name)
+    if(user_id !== null && user_id !== undefined)
+      socket.emit('join-room', ROOM_ID, user_id, user_name)
+    else joinLoop()
     window.open("/address/"+ ROOM_ID,  "popup", "width=300, \
     status=no, menubars=0, height=300, scrollbars=0, top=100px, left=100px\
     resizable=0, toolbar=0, directories=0, location=0, menubar=no")
@@ -451,7 +459,7 @@ function userJoin()
 
   socket.on('user-connected', (userId, userName) => {
     isCall[userId] = true
-    connectionLoop(userId, userName)
+    connectionLoop(userId, userName, 0)
   })
 }
 
@@ -526,7 +534,7 @@ function getNewUser()
   })
 }
 
-function connectionLoop(userId, userName) //피어 연결이 제대로 될 때 까지 반복
+function connectionLoop(userId, userName, connectionCnt) //피어 연결이 제대로 될 때 까지 반복
 {
   if(isCall[userId]) {
     console.log('peer connections..')
@@ -534,7 +542,8 @@ function connectionLoop(userId, userName) //피어 연결이 제대로 될 때 �
       peers[userId].close()
     peers[userId] = undefined
     connectToNewUser(userId, userName)
-    setTimeout(connectionLoop, 2000, userId, userName)
+    if(connectionCnt < 6)
+      setTimeout(connectionLoop, 2000, userId, userName, connectionCnt +1)
   }
   else {
   }
@@ -868,6 +877,15 @@ socket.on('sendStream_script', (userId_caller, userId_callee, roomId, isCam) => 
   }
 })
 
+socket.on('nameChange_script', (userId, isHost, userName) => {
+  if(userId !== user_id) {
+    var bold = document.getElementById(userId + '!bold')
+    if(isHost) bold.innerText = userName + '(호스트)'
+    else bold.innerText = userName
+  }
+})
+
+
 var newImg = new Image()
   newImg.onload = function() {
     context.drawImage(newImg, 0,0, canvas.width, canvas.height)
@@ -994,9 +1012,22 @@ document.addEventListener("keydown", (e) => {
     gestureFlag = true
     clickCanvas(cam_selected)
   }
-
+  if(e.key === 'End') {
+    var flag = true
+    var inputName = prompt('바꿀 이름을 입력해주세요','')
+    if(inputName === null || inputName === undefined || inputName === '' || inputName.length > 6) {
+      alert('1~6자리 이름을 입력해주세요.')
+      flag = false
+    }
+    if(flag) {
+      var bold = document.getElementById('mybold')
+      bold.innerText = inputName
+      user_name = inputName
+      socket.emit('nameChange_server', ROOM_ID, user_id, isHost, inputName)
+    }
+  }
   if(e.key == 'Insert') {  //디버그용
-    console.log(mouse.pos.x, mouse.pos.y, canvas.width)
+    console.log(isHost)
   }
 })
 
@@ -1011,7 +1042,7 @@ document.addEventListener("keyup", (e) => {
 function clickCanvas(select)
 {
   if(select === 1) penStyle = 'pen'
-  else if(select === 2) penStyle = 'eraser'
+  //else if(select === 2) penStyle = 'eraser' 보류
   else if(select === 3) socket.emit('clearWhiteBoard', ROOM_ID)
   else if(select === 4) penColor = 'black'
   else if(select === 5) penColor = 'red'
