@@ -106,7 +106,7 @@ io.on('connection', socket => {
     io.sockets.in(roomId).emit('sendStream_script', userId_caller, userId_callee, roomId, isCam)
   })
   socket.on('sendMessage', function(data){ 
-    data.name = socket.userName;
+    data.name = data.user_name;
     io.sockets.emit('updateMessage', data); 
   });
   socket.on('displayConnect_server', (roomId, userId) => {
