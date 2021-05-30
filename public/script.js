@@ -538,6 +538,16 @@ var user_name;
       isEachCanvas = flag
   })
 
+  socket.on('quit', (userId) => {
+    if(userId === user_id) {
+      window.location.href = '/home/quit'
+      swal({
+        text:"강퇴당하셨습니다.",
+        icon: "warning"
+      })
+    }
+  })
+
   function joinLoop()
   {
     if(user_id === null || user_id === undefined) setTimeout(joinLoop, 1000)
@@ -934,7 +944,11 @@ var user_name;
         window.open("/address/"+ ROOM_ID,  "popup", "width=300, \
         status=no, menubars=0, height=300, scrollbars=0, top=100px, left=100px\
         resizable=0, toolbar=0, directories=0, location=0, menubar=no")
-
+      else 
+        swal({
+          text:'호스트가 되었습니다.',
+          icon:'info'
+        })
       var item1 = new Item("everyuser", "fas fa-user", "#5CD1FF", "모든 사용자 캔버스 사용")
       var item2 = new Item("onlyhost", "fas fa-user-times", "#FFF15C", "호스트만 캔버스 사용")
       var item3 = new Item("eachcanvas", "fas fa-chalkboard-teacher", "#FFFFE0", "각자 캔버스 사용")
