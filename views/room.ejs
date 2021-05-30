@@ -4,7 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <meta name="google" content="notranslate">
     <link href="room.css" rel="stylesheet" />
+    <link rel="stylesheet" href="loading.css">
     <script>
       const ROOM_ID = '<%= roomId %>';
     </script>
@@ -13,6 +15,7 @@
       defer
       src="https://unpkg.com/peerjs@1.2.0/dist/peerjs.min.js"
     ></script>
+    <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
     <script async src="https://docs.opencv.org/3.4/opencv.js"></script>
     <script src="/socket.io/socket.io.js" defer></script>
 
@@ -32,6 +35,9 @@
     <title>AirBoard Room</title>
   </head>
   <body>
+    <div class="loading">
+      <div class="loader"></div>
+    </div>
     <div class="center menu">
       <div id="myMenu"></div>
     </div>
