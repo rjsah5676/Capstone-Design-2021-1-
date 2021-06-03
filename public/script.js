@@ -194,8 +194,7 @@ var menu  //float 버튼용 메뉴
       isCam = false
       myVideoBackground.style.width = '160px'
       myVideoBackground.style.height = '118px'
-      myVideo.width = 0
-      myVideo.height = 0
+      myVideo.style.visibility="hidden"
       camButton.innerText = '캠 켜기'
       camImage.src="img/[크기변환]noweb-cam.png"
       localStream.flag = 0
@@ -251,8 +250,8 @@ var menu  //float 버튼용 메뉴
     if(roomId === ROOM_ID && userId !== user_id) {
       const video = document.getElementById(userId + '!video')
       video.muted = is_mute
+      const userbox=document.getElementById(userId+"!userBox")
       if(is_mute === true){
-        const userbox=document.getElementById(userId+"!userBox");
         const muteicon=document.createElement("img");
         muteicon.id=userId+"!muteicon";
         muteicon.className="muteicon";
@@ -287,14 +286,16 @@ var menu  //float 버튼용 메뉴
     if(!isCam) {
       videoBackground.style.width = '160px'
       videoBackground.style.height = '118px'
-      video.width = 0
-      video.height = 0
+      video.style.visibility='hidden'
+      //video.width = 0
+      //video.height = 0
     }
     else {
       videoBackground.style.width = '0px'
       videoBackground.style.height = '0px'
-      video.width = 160
-      video.height = 118
+      video.style.visibility="visible"
+      //video.width = 160
+      //video.height = 118
     }
     }
   })
@@ -477,25 +478,30 @@ var menu  //float 버튼용 메뉴
     if(user_id === userId) {
       const video = document.getElementById(muteUserId + '!video')
       video.muted = isMute
+      if(isMute) {
+        const userbox=document.getElementById(muteUserId+"!userBox");
+        const muteicon=document.createElement("img");
+        muteicon.id=muteUserId+"!muteicon";
+        muteicon.className="muteicon";
+        muteicon.src="img/mute.png"
+        userbox.appendChild(muteicon);
+      }
     }
   })
 
   socket.on('setCam', (isCam, camUserId, userId) => {
     if(user_id === userId) {
-      console.log(isCam)
       const video = document.getElementById(camUserId + '!video')
       const videoBackground = document.getElementById(camUserId + '!videoBackground')
       if(!isCam) {
         videoBackground.style.width = '160px'
         videoBackground.style.height = '118px'
-        video.width = 0
-        video.height = 0
+        video.style.visibility="hidden"
       }
       else {
         videoBackground.style.width = '0px'
         videoBackground.style.height = '0px'
-        video.width = 160
-        video.height = 118
+        video.style.visibility="visible"
       }
     }
   })
@@ -845,14 +851,14 @@ var menu  //float 버튼용 메뉴
       if(isCam) {
         myVideoBackground.style.width = '160px'
         myVideoBackground.style.height = '118px'
-        myVideo.width = 0
-        myVideo.height = 0
+        myVideo.style.visibility="hidden"
         camButton.innerText = '캠 켜기'
         camImage.src="img/[크기변환]noweb-cam.png"
       }
       else {
         myVideoBackground.style.width = '0px'
         myVideoBackground.style.height = '0px'
+        myVideo.style.visibility="visible"
         myVideo.width = 160
         myVideo.height = 118
         camButton.innerText = '캠 끄기'
@@ -1240,17 +1246,17 @@ var menu  //float 버튼용 메뉴
       const bold = document.createElement('b')
       const videoUserNameText = document.createTextNode('loading..')
       const video = document.createElement('video')
-      video.width = 0
-      video.height = 0
+      video.width = 160
+      video.height = 118
       const userBox = document.createElement('userBox')
       const videoBackground = document.createElement('videoBackground')
       videoBackground.style.width = '160px'
       videoBackground.style.height = '118px'
 
       call.on('stream', userVideoStream => {
-        socket.emit('getMute', call.peer, user_id, ROOM_ID)
-        socket.emit('getCam', call.peer, user_id, ROOM_ID)
         if(peers[call.peer] == undefined) {
+          socket.emit('getMute', call.peer, user_id, ROOM_ID)
+          socket.emit('getCam', call.peer, user_id, ROOM_ID)
           bold.id = call.peer + '!bold'
           video.id = call.peer+'!video'
           userBox.id = call.peer + '!userBox'

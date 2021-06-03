@@ -5,23 +5,59 @@ const io = require('socket.io')(server)
 const { v4: uuidV4 } = require('uuid')
 const fs = require('fs')
 
-const mongoose = require('mongoose');
-const User = require('./models/user');
-const Room = require('./models/room');
+const mongoose = require('mongoose')
+const User = require('./models/user')
+const Room = require('./models/room')
+const Account = require('./models/account')
 const { response } = require('express')
 const user = require('./models/user')
+const { request } = require('http')
+const bodyParser = require('body-parser')
+
+const indexRoute = require("./routes/index")
+const passport = require('passport')
+const LocalStrategy = require('passport-local').Strategy
+const Session = require('express-session')
+const flash = require('connect-flash')
+var MongoDBStore = require('connect-mongodb-session')(Session)
 
 //로컬 테스트시 여기서 복붙
 //mongoose 연결
-mongoose.connect('mongodb://localhost:27017/room_user_db');
-const db = mongoose.connection;
-db.on('error', console.error);
+mongoose.connect('mongodb://localhost:27017/room_user_db')
+const db = mongoose.connection
+db.on('error', console.error)
 db.once('open', function(){
     // CONNECTED TO MONGODB SERVER
-    console.log("Connected to mongod server");
-});
+    console.log("Connected to mongod server")
+})
 app.set('view engine', 'ejs')
 app.use(express.static('public'))
+app.use(bodyParser.urlencoded({ extended: true }));
+
+var store = new MongoDBStore({//세션을 저장할 공간
+  uri: 'mongodb://localhost:27017/room_user_db',//db url
+  collection: 'sessions'//콜렉션 이름
+});
+
+store.on('error', function(error) {//에러처리
+  console.log(error);
+});
+
+app.use(Session({
+  secret:'goingsamsung', //세션 암호화 key
+  resave:false,//세션 재저장 여부
+  saveUninitialized:true,
+  rolling:true,//로그인 상태에서 페이지 이동 시마다 세션값 변경 여부
+  cookie:{maxAge:1000*60*60},//유효시간
+  store: store
+}));
+
+app.use(passport.initialize())
+app.use(passport.session())
+
+app.use(flash());
+
+app.use("/", indexRoute)
 
 var line_track = [] //캔버스용 라인따기
 var line_track_backup = [] //캔버스용 라인따기
