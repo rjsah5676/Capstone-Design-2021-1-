@@ -63,115 +63,7 @@ var line_track = [] //캔버스용 라인따기
 var line_track_backup = [] //캔버스용 라인따기
 var backup_track = []
 var isDisplayHost = []
-app.get('/', (req, res) => {
-  res.render('home');
-})
 
-app.get('/newroom', (req, res) => {
-  var newRoomId = uuidV4()
-  const room = new Room({
-    roomId: newRoomId,
-  });
-  room.save((err, room)=>{
-    if(err) return console.error(err);
-  });
-  res.redirect(`/${newRoomId}`)
-})
-
-app.get('/:room', async(req, res) => {
-  const room = await Room.findOne({roomId: req.params.room}, null, {})
-  if(room !== null) res.render('room', { roomId: req.params.room })
-  else {
-    res.render("noPage",{message:"존재하지 않는 회의실 주소입니다"});
-  }
-})
-
-app.post('/joinroom', (req, res) => {
-  var tmp = req.body.address.split("/");
-  console.log(tmp);
-  if(tmp[2]=='airboard.ga'){
-    res.redirect(`/${tmp[3]}`);
-  }
-  else{
-    res.render("noPage",{message:"존재하지 않는 회의실 주소입니다"})
-  }
-})
-
-app.get('/home/quit', async(req, res) => {
-  res.render("noPage",{message:"호스트에 의해 강제 퇴장 당했습니다"});
-})
-
-app.get('/controlUser/:room/:userId/:flag', async(req, res) => {
-  var userId = req.params.userId
-  var flag = req.params.flag
-  var roomId = req.params.room
-  if(flag === 'quit') {
-    io.emit('quit', userId)
-    await User.deleteOne({userId : userId})
-  }
-  if(flag === 'cam') io.emit('cam', userId)
-  if(flag === 'mute') io.emit('mute', userId)
-  res.redirect('/userlist/'+roomId)
-})
-
-app.get('/address/:room', (req, res) => {
-  res.render('address', {roomId: req.params.room})
-})
-
-app.get('/userlist/:room', (req, res) => {
-  fs.readFile('views/userlist.ejs', async(err, tmpl) => {
-    var roomId = req.params.room
-    var userlist = await User.find({roomId:roomId, isHost: false}, null, {})
-    var cnt = 1
-    var topText = "<table><tr><th>순번</th><th>이름</th><th colspan=\"4\">사용자 컨트롤</th></tr>"
-    var userinfo = ""
-    if(userlist) {
-      if(userlist.length === 0) userinfo += "<tr><td colspan=\"5\">사용자가 없습니다</td></tr>"
-      else {
-        for(var i=0; i<userlist.length; i++) {   
-          userinfo += "<tr><td>"
-          + cnt++ + "</td>" + "<td>"+ userlist[i].userName +"</td>"
-          + "<td><button onclick='controlUser(" + "\"" + userlist[i].userId + "\"" + "," + "\""  + roomId + "\"" + "," + "\""  + "cam" + "\"" + ");'>캠 끄기</button></td>"
-          + "<td><button onclick='controlUser(" + "\"" + userlist[i].userId + "\"" + "," + "\""  + roomId + "\"" + "," + "\""  + "mute" + "\"" + ");'>마이크 끄기</button></td>"
-          + "<td><button onclick='controlUser(" + "\"" + userlist[i].userId + "\"" + "," + "\""  + roomId + "\"" + "," + "\""  + "quit" + "\"" + ");'>강제 퇴장</button></td></tr>"
-        }
-      }
-    }
-    userinfo += "</table>"
-    topText = topText+userinfo;
-    let html = tmpl.toString().replace('%', topText)
-    res.writeHead(200,{'Content-Type':'text/html'})
-    res.end(html)
-  })
-})
-
-app.get('/img/:fileName', (req,res) => {
-  const { fileName } = req.params
-  const { range } = req.headers
-  const fileStat = fs.statSync('img/nocam.mp4')
-  const {size} = fileStat
-  const fullPath = 'img/nocam.mp4'
-  if (range) {
-    const parts = range.replace(/bytes=/, '').split('-')
-    const start = parseInt(parts[0])
-    const end = parts[1] ? parseInt(parts[1]) : size - 1
-    const chunk = end - start + 1
-    const stream = fs.createReadStream(fullPath, { start, end })
-    res.writeHead(206, {
-      'Content-Range': `bytes ${start}-${end}/${size}`,
-      'Accept-Ranges': 'bytes',
-      'Content-Length': chunk,
-      'Content-Type': 'video/mp4'
-    })
-    stream.pipe(res)
-  } else {
-    res.writeHead(200, {
-      'Content-Length': size,
-      'Content-Type': 'video/mp4'
-    })
-    fs.createReadStream(fullPath).pipe(res)
-  }
-})
 io.on('connection', socket => {
   socket.on('sendMessage', function(data){ 
     data.name = data.user_name;
@@ -196,6 +88,9 @@ io.on('connection', socket => {
     const muteUser = await User.findOne({userId: userId}, null, {})
     muteUser.isMute = isMute
     muteUser.save()
+  })
+  socket.on('thumbsRequest_server',async(userId, roomId)=>{
+    io.sockets.in(roomId).emit('thumbsRequest_script', userId, roomId)
   })
   socket.on('displayReset_server', (roomId, userId) => {
     io.sockets.in(roomId).emit('displayReset_script', roomId, userId)
