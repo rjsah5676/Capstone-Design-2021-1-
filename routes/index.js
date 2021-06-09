@@ -56,14 +56,22 @@ router.get('/', forwardAuthenticated, (req, res) => {
 })
 
 router.get('/signup', (req, res) => {
-    res.render("signup");
-});
+    res.render("signup")
+})
+
+router.post('/changeName', async(req, res) => {
+    const user = await Account.findOne({email: req.body.email}, null, {})
+    user.name = req.body.nextName
+    user.save()
+    req.user.name = user.name
+    res.redirect('/')
+})
 
 router.get("/login", (req, res) => res.render("login", { message: req.flash("login_message") }));
 
 router.get('/logout', function (req, res) {
-    req.logout();
-    res.redirect('/'); //로그아웃 후 '/'로 이동
+    req.logout()
+    res.redirect('/') //로그아웃 후 '/'로 이동
 });
 
 router.post("/signup", (req, res, next) => {
@@ -97,9 +105,10 @@ router.post("/signup", (req, res, next) => {
     }
 })
 
-// router.post('/login', passport.authenticate('local', { failureRedirect: '/login', failureFlash: true }), function (req, res) {
-//     res.redirect('/', {email: (req == null ? "" : req.body.email)});
-// });
+router.get('/accInfo', (req, res) => {
+    if(req.user === undefined) res.redirect('/') 
+    else res.render("accInfo",{name: req.user.name, email: req.user.email})
+})
 
 router.post('/login', passport.authenticate('local', {
     successRedirect: '/',

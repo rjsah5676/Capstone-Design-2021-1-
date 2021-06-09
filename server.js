@@ -116,32 +116,33 @@ io.on('connection', socket => {
     var flag = true
       if(line_track[roomId] !== undefined) {
         if(line_track[roomId][userId] !== undefined) {
+          var undoDO = function(cnt, roomId, userId)
+          {
+            for(var i = 0; i < cnt; i++) line_track[roomId][userId].pop()
+            backup_track[roomId][userId].push(cnt)
+          }          
           var length = line_track[roomId][userId].length
-          if(length >= 3) {
-            line_track[roomId][userId].pop()
-            line_track[roomId][userId].pop()
-            line_track[roomId][userId].pop()
-            backup_track[roomId][userId].push(3)
-          }
-          else if(length === 2) {
-            line_track[roomId][userId].pop()
-            line_track[roomId][userId].pop()
-            backup_track[roomId][userId].push(2)
-          }
-          else if(length === 1) {
-            line_track[roomId][userId].pop()
-            backup_track[roomId][userId].push(1)
-          }
+          if(length >= 9) undoDO(9, roomId, userId)
+          else if(length === 8) undoDO(8, roomId, userId)
+          else if(length === 7) undoDO(7, roomId, userId)
+          else if(length === 6) undoDO(6, roomId, userId)
+          else if(length === 5) undoDO(5, roomId, userId)
+          else if(length === 4) undoDO(4, roomId, userId)
+          else if(length === 3) undoDO(3, roomId, userId)
+          else if(length === 2) undoDO(2, roomId, userId)
+          else if(length === 1) undoDO(1, roomId, userId)
           else flag = false
           if(flag) {
-            io.sockets.in(roomId).emit('reLoading', userId)
+            io.sockets.in(roomId).emit('reLoading2', userId)
             if(!room.isEachCanvas)
               for(var i in line_track[roomId])
-                for(var j in line_track[roomId][i])
+                for(var j in line_track[roomId][i]) {
                   io.sockets.in(roomId).emit('stroke', {line: line_track[roomId][i][j].line, roomId:line_track[roomId][i][j].roomId, userId: userId, size: line_track[roomId][i][j].size, penWidth: line_track[roomId][i][j].penWidth, penColor: line_track[roomId][i][j].penColor})
+                }
             else
               for(var i in line_track[roomId][userId])
-                socket.emit('stroke', {line: line_track[roomId][userId][i].line, roomId:line_track[roomId][userId][i].roomId, userId:line_track[roomId][userId][i].userId, size: line_track[roomId][userId][i].size, penWidth: line_track[roomId][userId][i].penWidth, penColor: line_track[roomId][userId][i].penColor}); 
+                socket.emit('stroke', {line: line_track[roomId][userId][i].line, roomId:line_track[roomId][userId][i].roomId, userId:line_track[roomId][userId][i].userId, size: line_track[roomId][userId][i].size, penWidth: line_track[roomId][userId][i].penWidth, penColor: line_track[roomId][userId][i].penColor});
+            //socket.emit('test', userId)
           }
         }
     }
@@ -267,14 +268,14 @@ io.on('connection', socket => {
     const room = await Room.findOne({roomId: roomId}, null, {})
     if(!room.isEachCanvas)
       for(var i in line_track[roomId]) {
-        for(var j in line_track[roomId][i])
-          socket.emit('drawLine', {line: line_track[roomId][i][j].line, roomId:line_track[roomId][i][j].roomId, userId:line_track[roomId][i][j].userId, size: line_track[roomId][i][j].size, penWidth: line_track[roomId][i][j].penWidth, penColor: line_track[roomId][i][j].penColor});
+        for(var j in line_track[roomId][i]) 
+        io.sockets.in(roomId).emit('reDrawLine', userId, {line: line_track[roomId][i][j].line, roomId:line_track[roomId][i][j].roomId, userId:line_track[roomId][i][j].userId, size: line_track[roomId][i][j].size, penWidth: line_track[roomId][i][j].penWidth, penColor: line_track[roomId][i][j].penColor});
       }
     else {
       if(userId !== null && userId !== undefined)
         if(line_track[roomId][userId] !== null && line_track[roomId][userId] !== undefined)
         for(var i in line_track[roomId][userId])
-          socket.emit('drawLine', {line: line_track[roomId][userId][i].line, roomId:line_track[roomId][userId][i].roomId, userId:line_track[roomId][userId][i].userId, size: line_track[roomId][userId][i].size, penWidth: line_track[roomId][userId][i].penWidth, penColor: line_track[roomId][userId][i].penColor});
+          io.sockets.in(roomId).emit('reDrawLine', userId, {line: line_track[roomId][userId][i].line, roomId:line_track[roomId][userId][i].roomId, userId:line_track[roomId][userId][i].userId, size: line_track[roomId][userId][i].size, penWidth: line_track[roomId][userId][i].penWidth, penColor: line_track[roomId][userId][i].penColor});
     }
   })
   /*
