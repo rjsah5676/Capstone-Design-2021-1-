@@ -1,9 +1,5 @@
-/*
-  화면공유 했을 때 안넘어가는 경우가있음.(건모-> 형택: X, 형택->건모: O)
-  되돌리기 했을 때 맨 처음 필기 늘어나는 현상 있음
-*/
 var user_id
-var menu  //float 버튼용 메뉴
+var menu
 
 (async () => { 
   if(user_name === '') {
